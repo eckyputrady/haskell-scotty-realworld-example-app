@@ -10,12 +10,11 @@ import Database.PostgreSQL.Simple.Types
 import Data.Has
 import PG
 import JWT
-import Control.Monad.Trans.Control
 import qualified Web.Slug as WSlug
 import Data.Convertible (convert)
 import System.Posix.Types (EpochTime)
 
-type RW e r m = (MonadError e m, PG r m, JWT r m, MonadBaseControl IO m)
+type RW e r m = (MonadError e m, PG r m, JWT r m)
 
 -- * User
 
@@ -372,13 +371,6 @@ handleSqlUserError email username sqlError = do
   when (isUniqueConstraintsViolation sqlError "users_email_key") (throwError $ UserErrorEmailTaken email)
   when (isUniqueConstraintsViolation sqlError "users_name_key") (throwError $ UserErrorNameTaken username)
   error $ "Unknown SQL error: " <> show sqlError
-
-withTx :: (PG r m, MonadBaseControl IO m, MonadError e m) => m a -> m a
-withTx action = do
-  conn <- asks getter
-  control $ \runInBase -> withTransaction conn . runInBase $ action `catchError` \e -> do
-    liftIO $ rollback conn 
-    throwError e
 
 
 -- * PG Deserializations

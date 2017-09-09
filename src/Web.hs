@@ -7,7 +7,6 @@ import ClassyPrelude hiding (delete)
 import Struct
 import RealWorld
 import Control.Monad.Except
-import Control.Monad.Logger
 import Web.Scotty.Trans
 import Network.HTTP.Types.Status
 import Network.Wai (Response)
@@ -18,15 +17,13 @@ import qualified Text.Digestive.View as DF
 import qualified Text.Digestive.Types as DF
 import qualified Text.Digestive.Aeson as DF
 import Text.Digestive.Form ((.:))
-import qualified Data.Aeson as Aeson
-import Data.Aeson ((.=))
 import Text.Regex
 
 import PG
 import JWT
 import System.Environment
 
-type App r m = (PG r m, MonadLogger m, JWT r m, MonadBaseControl IO m)
+type App r m = (PG r m, JWT r m)
 
 main :: (App r m) => (m Response -> IO Response) -> IO ()
 main runner = do
