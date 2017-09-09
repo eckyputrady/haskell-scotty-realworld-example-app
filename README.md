@@ -4,6 +4,7 @@
 
 ### [Demo](https://haskell-scotty-realworld.herokuapp.com/api/health)&nbsp;&nbsp;&nbsp;&nbsp;[RealWorld](https://github.com/gothinkster/realworld)
 
+[![Build Status](https://travis-ci.org/eckyputrady/haskell-scotty-realworld-example-app.svg?branch=master)](https://travis-ci.org/eckyputrady/haskell-scotty-realworld-example-app)
 
 This codebase was created to demonstrate a fully fledged fullstack application built with **Haskell/Scotty** including CRUD operations, authentication, routing, pagination, and more.
 

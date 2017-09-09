@@ -100,7 +100,7 @@ getFeed token pagination = do
   let opts = defaults & authHeader token & paginate pagination
   articlesWrapperArticles <$> exec (getWith opts url)
 
-getArticle :: (RW ArticleError r m) => Maybe Token -> Slug -> m Article -- not found
+getArticle :: (RW ArticleError r m) => Maybe Token -> Slug -> m Article
 getArticle mayToken slug = do
   url <- buildUrl $ "/articles/" <> unpack slug
   let opts = defaults & mayAuthHeader mayToken
@@ -113,14 +113,14 @@ createArticle token param = do
   let body = Aeson.toJSON $ ArticleWrapper param
   articleWrapperArticle <$> exec (postWith opts url body)
 
-updateArticle :: (RW ArticleError r m) => Token -> Slug -> UpdateArticle -> m Article -- not found, not allowed
+updateArticle :: (RW ArticleError r m) => Token -> Slug -> UpdateArticle -> m Article
 updateArticle token slug param = do
   url <- buildUrl $ "/articles/" <> unpack slug
   let opts = defaults & authHeader token
   let body = Aeson.toJSON $ ArticleWrapper param
   articleWrapperArticle <$> exec (putWith opts url body)
 
-deleteArticle :: (RW ArticleError r m) => Token -> Slug -> m () -- not found, not allowed
+deleteArticle :: (RW ArticleError r m) => Token -> Slug -> m ()
 deleteArticle token slug = do
   url <- buildUrl $ "/articles/" <> unpack slug
   let opts = defaults & authHeader token
@@ -141,14 +141,14 @@ articleFilter (ArticleFilter mayTag mayAuthor mayFavoritedBy) =
 
 -- * Favorites
 
-favoriteArticle :: (RW ArticleError r m) => Token -> Slug -> m Article -- not found
+favoriteArticle :: (RW ArticleError r m) => Token -> Slug -> m Article
 favoriteArticle token slug = do
   url <- buildUrl $ "/articles/" <> unpack slug <> "/favorite"
   let opts = defaults & authHeader token
   let body = Aeson.toJSON $ asText ""
   articleWrapperArticle <$> exec (postWith opts url body)
 
-unfavoriteArticle :: (RW ArticleError r m) => Token -> Slug -> m Article -- not found
+unfavoriteArticle :: (RW ArticleError r m) => Token -> Slug -> m Article
 unfavoriteArticle token slug = do
   url <- buildUrl $ "/articles/" <> unpack slug <> "/favorite"
   let opts = defaults & authHeader token
@@ -158,20 +158,20 @@ unfavoriteArticle token slug = do
 
 -- * Comments
 
-addComment :: (RW CommentError r m) => Token -> Slug -> Text -> m Comment -- slug not found
+addComment :: (RW CommentError r m) => Token -> Slug -> Text -> m Comment
 addComment token slug comment = do
   url <- buildUrl $ "/articles/" <> unpack slug <> "/comments"
   let opts = defaults & authHeader token
   let body = Aeson.object [ "comment" .= Aeson.object [ "body" .= comment ] ]
   commentWrapperComment <$> exec (postWith opts url body)
 
-delComment :: (RW CommentError r m) => Token -> Slug -> CommentId -> m () -- slug not found, comment not found, not allowed
+delComment :: (RW CommentError r m) => Token -> Slug -> CommentId -> m ()
 delComment token slug commentId = do
   url <- buildUrl $ "/articles/" <> unpack slug <> "/comments/" <> show commentId
   let opts = defaults & authHeader token
   (const () . asText) <$> exec (deleteWith opts url)
 
-getComments :: (RW CommentError r m) => Maybe Token -> Slug -> m [Comment] -- not found
+getComments :: (RW CommentError r m) => Maybe Token -> Slug -> m [Comment]
 getComments mayToken slug = do
   url <- buildUrl $ "/articles/" <> unpack slug <> "/comments"
   let opts = defaults & mayAuthHeader mayToken
