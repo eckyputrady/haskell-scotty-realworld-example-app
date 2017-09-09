@@ -2,12 +2,12 @@
 
 > ### Haskell/Scotty codebase containing real world examples (CRUD, auth, advanced patterns, etc) that adheres to the [RealWorld](https://github.com/gothinkster/realworld-example-apps) spec and API.
 
-### [Demo]()&nbsp;&nbsp;&nbsp;&nbsp;[RealWorld](https://github.com/gothinkster/realworld)
+### [Demo](https://haskell-scotty-realworld.herokuapp.com/api/health)&nbsp;&nbsp;&nbsp;&nbsp;[RealWorld](https://github.com/gothinkster/realworld)
 
 
 This codebase was created to demonstrate a fully fledged fullstack application built with **Haskell/Scotty** including CRUD operations, authentication, routing, pagination, and more.
 
-We've gone to great lengths to adhere to the **Haskell/Servant** community styleguides & best practices.
+We've gone to great lengths to adhere to the **Haskell/Scotty** community styleguides & best practices.
 
 For more information on how to this works with other frontends/backends, head over to the [RealWorld](https://github.com/gothinkster/realworld) repo.
 
@@ -76,7 +76,11 @@ Alternatively, to watch file changes and start the server automatically
 
 Alternatively, to watch file changes and run the tests automatically
 
-    stack --test --file-watch
+    stack test --file-watch --coverage
+
+To setup deployment to Heroku, please configure this custom buildpack
+
+    heroku buildpacks:set https://github.com/mfine/heroku-buildpack-stack
 
 # Misc
 
