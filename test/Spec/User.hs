@@ -62,7 +62,7 @@ userSpec =
       it "should login successfully" $ do
         Right user <- registerRandomUser
         Right user' <- runClient $ RW.login $ Auth (userEmail user) "test1234"
-        user `shouldBe` user'
+        userUsername user `shouldBe` userUsername user'
 
       it "should expire login eventually" $ do
         Right user <- registerRandomUser
