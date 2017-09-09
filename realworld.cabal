@@ -62,6 +62,7 @@ library
                      , ScopedTypeVariables
                      , MultiParamTypeClasses
                      , QuasiQuotes
+                     , GeneralizedNewtypeDeriving
 
 executable realworld-exe
   hs-source-dirs:      app
@@ -96,9 +97,6 @@ test-suite realworld-test
   default-language:    Haskell2010
   default-extensions:  NoImplicitPrelude
                      , OverloadedStrings
-                     , GeneralizedNewtypeDeriving
-                     , FlexibleContexts
-                     , TypeFamilies
 
 source-repository head
   type:     git

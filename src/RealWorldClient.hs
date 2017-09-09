@@ -15,7 +15,7 @@ import Data.Has
 -- * Types
 
 data Err a
-  = ErrMalformedJSON JSONError
+  = ErrMalformedJSON Text
   | ErrInvalidInput InputViolations
   | ErrInternalServerError ByteString
   | ErrUnauthorized TokenError
@@ -36,15 +36,15 @@ buildUrl path = do
 -- * User
 
 login :: (RW UserError r m) => Auth -> m User
-login param = do
+login arg = do
   url <- buildUrl "/users/login"
-  let body = Aeson.toJSON $ UserWrapper param
+  let body = Aeson.toJSON $ UserWrapper arg
   userWrapperUser <$> exec (post url body)
 
 register :: (RW UserError r m) => Register -> m User
-register param = do
+register arg = do
   url <- buildUrl "/users"
-  let body = Aeson.toJSON $ UserWrapper param
+  let body = Aeson.toJSON $ UserWrapper arg
   userWrapperUser <$> exec (post url body)
  
 getUser :: (RW UserError r m) => Token -> m User
@@ -55,9 +55,9 @@ getUser token = do
 
 
 updateUser :: (RW UserError r m) => Token -> UpdateUser -> m User
-updateUser token param = do
+updateUser token arg = do
   url <- buildUrl "/user"
-  let body = Aeson.toJSON $ UserWrapper param
+  let body = Aeson.toJSON $ UserWrapper arg
   let opts = defaults & authHeader token
   userWrapperUser <$> exec (putWith opts url body)
 
@@ -89,9 +89,9 @@ unfollowUser token username = do
 -- * Articles
 
 getArticles :: (RW ArticleError r m) => Maybe Token -> ArticleFilter -> Pagination -> m [Article]
-getArticles mayToken filter pagination = do
+getArticles mayToken filterParam pagination = do
   url <- buildUrl "/articles"
-  let opts = defaults & mayAuthHeader mayToken & paginate pagination & articleFilter filter
+  let opts = defaults & mayAuthHeader mayToken & paginate pagination & articleFilter filterParam
   articlesWrapperArticles <$> exec (getWith opts url)
 
 getFeed :: (RW ArticleError r m) => Token -> Pagination -> m [Article]
@@ -107,25 +107,24 @@ getArticle mayToken slug = do
   articleWrapperArticle <$> exec (getWith opts url)
 
 createArticle :: (RW ArticleError r m) => Token -> CreateArticle -> m Article
-createArticle token param = do
+createArticle token arg = do
   url <- buildUrl "/articles"
   let opts = defaults & authHeader token
-  let body = Aeson.toJSON $ ArticleWrapper param
+  let body = Aeson.toJSON $ ArticleWrapper arg
   articleWrapperArticle <$> exec (postWith opts url body)
 
 updateArticle :: (RW ArticleError r m) => Token -> Slug -> UpdateArticle -> m Article
-updateArticle token slug param = do
+updateArticle token slug arg = do
   url <- buildUrl $ "/articles/" <> unpack slug
   let opts = defaults & authHeader token
-  let body = Aeson.toJSON $ ArticleWrapper param
+  let body = Aeson.toJSON $ ArticleWrapper arg
   articleWrapperArticle <$> exec (putWith opts url body)
 
 deleteArticle :: (RW ArticleError r m) => Token -> Slug -> m ()
 deleteArticle token slug = do
   url <- buildUrl $ "/articles/" <> unpack slug
   let opts = defaults & authHeader token
-  exec (deleteWith opts url) :: (RW ArticleError r m) => m Text
-  return ()
+  (const () . asText) <$> exec (deleteWith opts url)
 
 paginate :: Pagination -> Network.Wreq.Options -> Network.Wreq.Options
 paginate (Pagination limit offset) =
@@ -166,8 +165,8 @@ addComment token slug comment = do
   commentWrapperComment <$> exec (postWith opts url body)
 
 delComment :: (RW CommentError r m) => Token -> Slug -> CommentId -> m ()
-delComment token slug commentId = do
-  url <- buildUrl $ "/articles/" <> unpack slug <> "/comments/" <> show commentId
+delComment token slug cId = do
+  url <- buildUrl $ "/articles/" <> unpack slug <> "/comments/" <> show cId
   let opts = defaults & authHeader token
   (const () . asText) <$> exec (deleteWith opts url)
 
@@ -207,7 +206,7 @@ exec req = do
     `catch` handleOtherException
   return $ r ^. responseBody
   where
-    handleJSONError err@(JSONError _) = throwError $ ErrMalformedJSON err
+    handleJSONError (JSONError err) = throwError $ ErrMalformedJSON $ tshow err
     handleHttpException (HC.HttpExceptionRequest _ (HC.StatusCodeException res body)) =
       let status = HC.responseStatus res
       in  if status == status500 then
@@ -218,10 +217,10 @@ exec req = do
             parseJSONError body (ErrInvalidInput . errorsWrapperErrors)
           else
             parseJSONError body ErrApp
-    handleHttpException err@(HC.HttpExceptionRequest _ _) = throwError $ ErrUnknown $ tshow err
+    handleHttpException err = throwError $ ErrUnknown $ tshow err
     handleOtherException (e :: SomeException) = throwError $ ErrUnknown $ tshow e
     parseJSONError src f = case Aeson.eitherDecode $ fromStrict src of
-      Left parseErr -> throwError $ ErrMalformedJSON $ JSONError parseErr
+      Left parseErr -> throwError $ ErrMalformedJSON $ tshow parseErr
       Right parseResult -> throwError $ f parseResult
 
 authHeader :: Token -> Network.Wreq.Options -> Network.Wreq.Options
@@ -229,6 +228,3 @@ authHeader token = header "Authorization" .~ ["Token " <> fromString (unpack tok
 
 mayAuthHeader :: Maybe Token -> Network.Wreq.Options -> Network.Wreq.Options
 mayAuthHeader = maybe id authHeader
-
-instance Eq JSONError where
-  JSONError a == JSONError b = a == b

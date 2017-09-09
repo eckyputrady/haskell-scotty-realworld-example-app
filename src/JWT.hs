@@ -5,12 +5,11 @@ import Data.Has
 import Jose.Jwt
 import Jose.Jwk
 import Jose.Jwa
-import Crypto.Random.Types (MonadRandom, getRandomBytes)
+import Crypto.Random.Types (MonadRandom)
 import System.Environment
 import qualified Data.Aeson as Aeson
 import Struct
 import Control.Monad.Except
-import Control.Monad.Logger
 import Data.Time.Clock.POSIX (getPOSIXTime)
 
 newtype JWTExpirationSecs = JWTExpirationSecs Integer
@@ -63,14 +62,3 @@ generateToken userId = do
                         }
   (Jwt jwtEncoded) <- either (\e -> error $ "Failed to encode JWT: " <> show e) id <$> encode jwks (JwsEncoding RS256) (Claims . toStrict . Aeson.encode $ claim)
   return . decodeUtf8 $ jwtEncoded
-
--- * MonadRandom instances
-
-instance (MonadRandom m) => MonadRandom (ExceptT e m) where
-  getRandomBytes = lift . getRandomBytes
-  
-instance (MonadRandom m) => MonadRandom (ReaderT e m) where
-  getRandomBytes = lift . getRandomBytes
-  
-instance (MonadRandom m) => MonadRandom (LoggingT m) where
-  getRandomBytes = lift . getRandomBytes

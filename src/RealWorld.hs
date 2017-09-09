@@ -72,7 +72,7 @@ getProfile mayCurUser username = do
   conn <- asks getter
   results <- liftIO $ query conn qry (snd <$> mayCurUser, username)
   case results of
-    [a] -> return a
+    [a] -> return $ unFR a
     _ -> throwError $ UserErrorNotFound username
   where
     qry = "select cast (name as text), bio, image, exists(select 1 from followings where user_id = id and followed_by = ?) as following \
@@ -103,7 +103,8 @@ unfollowUser curUser@(_, curUserId) username = do
 getArticles' :: (RW ArticleError r m) => Maybe Slug -> Maybe Bool -> Maybe CurrentUser -> ArticleFilter -> Pagination -> m [Article]
 getArticles' maySlug mayFollowing mayCurrentUser articleFilter pagination = do
   conn <- asks getter
-  liftIO $ query conn qry arg
+  results <- liftIO $ query conn qry arg
+  return $ unFR <$> results
   where
     qry = [sql|
             with profiles as (
@@ -232,7 +233,7 @@ validateArticleOwnedBy userId slug = do
 favoriteArticle :: (RW ArticleError r m) => CurrentUser -> Slug -> m Article
 favoriteArticle curUser@(_, curUserId) slug = do
   conn <- asks getter
-  liftIO $ execute conn qry arg
+  void . liftIO $ execute conn qry arg
   getArticle (Just curUser) slug
   where
     qry = "with cte as ( \
@@ -244,7 +245,7 @@ favoriteArticle curUser@(_, curUserId) slug = do
 unfavoriteArticle :: (RW ArticleError r m) => CurrentUser -> Slug -> m Article
 unfavoriteArticle curUser@(_, curUserId) slug = do
   conn <- asks getter
-  liftIO $ execute conn qry arg
+  void . liftIO $ execute conn qry arg
   getArticle (Just curUser) slug
   where
     qry = "with cte as ( \
@@ -283,8 +284,7 @@ delComment (_, curUserId) slug cId = do
   validateCommentExists cId
   validateCommentOwnedBy curUserId cId
   conn <- asks getter
-  liftIO $ execute conn qry (Only cId)
-  return ()
+  void . liftIO $ execute conn qry (Only cId)
   where
     qry = "delete from comments where id = ?"
 
@@ -295,7 +295,8 @@ getComments' :: (RW CommentError r m) => Maybe CurrentUser -> Slug -> Maybe Comm
 getComments' mayCurUser slug mayCommentId = do
   validateArticleExists slug
   conn <- asks getter
-  liftIO $ query conn qry arg
+  results <- liftIO $ query conn qry arg
+  return $ unFR <$> results
   where
     qry = [sql|
             with profiles as (
@@ -375,11 +376,14 @@ handleSqlUserError email username sqlError = do
 
 -- * PG Deserializations
 
-instance FromRow Comment where
-  fromRow = Comment <$> field <*> field <*> field <*> field <*> fromRow
+-- newtype so that we can create non-orphan FromRow instance
+newtype FRow a = FRow { unFR :: a }
 
-instance FromRow Article where
-  fromRow = Article <$> field <*> field <*> field <*> field <*> (fromPGArray <$> field) <*> field <*> field <*> field <*> field <*> fromRow
+instance FromRow (FRow Comment) where
+  fromRow = FRow <$> (Comment <$> field <*> field <*> field <*> field <*> (unFR <$> fromRow))
 
-instance FromRow Profile where
-  fromRow = Profile <$> field <*> field <*> field <*> field
+instance FromRow (FRow Article) where
+  fromRow = FRow <$> (Article <$> field <*> field <*> field <*> field <*> (fromPGArray <$> field) <*> field <*> field <*> field <*> field <*> (unFR <$> fromRow))
+
+instance FromRow (FRow Profile) where
+  fromRow = FRow <$> (Profile <$> field <*> field <*> field <*> field)

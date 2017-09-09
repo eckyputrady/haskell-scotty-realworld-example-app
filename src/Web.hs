@@ -7,6 +7,7 @@ import ClassyPrelude hiding (delete)
 import Struct
 import RealWorld
 import Control.Monad.Except
+import Crypto.Random.Types (MonadRandom, getRandomBytes)
 import Web.Scotty.Trans
 import Network.HTTP.Types.Status
 import Network.Wai (Response)
@@ -231,13 +232,21 @@ requireUser = do
 optionalUser :: (App r m) => ActionT AppError m (Maybe CurrentUser)
 optionalUser = (Just <$> requireUser) `rescue` const (return Nothing)
 
-raiseIfError :: (Monad m, ScottyError e') => (e -> e') -> ExceptT e m a -> ActionT e' m a
+raiseIfError :: (Monad m, ScottyError e') => (e -> e') -> RWActionT e m a -> ActionT e' m a
 raiseIfError f action = do
-  result <- lift . runExceptT $ action
+  result <- lift . runExceptT . unRWActionT $ action
   case result of
     Left e -> raise $ f e
     Right a -> return a
 
+-- this newtype is created so that we can create a non-orphan instance of MonadRandom
+newtype RWActionT e m a = RWActionT
+  { unRWActionT :: ExceptT e m a
+  } deriving  ( Applicative, Functor, Monad, MonadTrans
+              , MonadError e, MonadReader r, MonadIO, MonadThrow, MonadCatch)
+
+instance (MonadRandom m) => MonadRandom (RWActionT e m) where
+  getRandomBytes = lift . getRandomBytes
 
 
 -- * Errors
@@ -310,8 +319,8 @@ minLength :: MonoFoldable a => Int -> a -> DF.Result Text a
 minLength n str = if length str >= n then DF.Success str else DF.Error $ "Minimum length is " <> tshow n
 
 matchesRegex :: v -> String -> Text -> DF.Result v Text
-matchesRegex errMsg regex str =
-  if isJust . matchRegex (mkRegexWithOpts regex True True) . unpack $ str
+matchesRegex errMsg regexStr str =
+  if isJust . matchRegex (mkRegexWithOpts regexStr True True) . unpack $ str
     then DF.Success str
     else DF.Error errMsg
 

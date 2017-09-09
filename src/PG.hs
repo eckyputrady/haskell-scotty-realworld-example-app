@@ -16,9 +16,8 @@ acquirePool = do
   createPool (connectPostgreSQL pgUrl) close 1 10 10
 
 migrateDb :: Pool Connection -> IO ()
-migrateDb pool = withResource pool $ \conn -> do
-  withTransaction conn $ runMigration (ctx conn)
-  return ()
+migrateDb pool = withResource pool $ \conn ->
+  void $ withTransaction conn (runMigration (ctx conn))
   where
     ctx = MigrationContext cmd False
     cmd = MigrationCommands [ MigrationInitialization, MigrationDirectory "postgresql" ]
