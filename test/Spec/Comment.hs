@@ -55,6 +55,18 @@ commentSpec =
         runClient (RW.delComment token slug (-1))
           `shouldReturn` Left (RW.ErrApp $ CommentErrorNotFound (-1))
 
+      it "should reject deleting comment that is not owned by the user" $ do
+        Right user1 <- registerRandomUser
+        Right user2 <- registerRandomUser
+        Right article <- createRandomArticle user1 []
+        let token1 = userToken user1
+        let token2 = userToken user2
+        let slug = articleSlug article
+        Right comment <- runClient (RW.addComment token2 slug "comment")
+        let cId = commentId comment
+        runClient (RW.delComment token1 slug cId)
+          `shouldReturn` Left (RW.ErrApp $ CommentErrorNotAllowed cId)
+
       it "should del comment successfully" $ do
         Right user <- registerRandomUser
         Right article <- createRandomArticle user []
