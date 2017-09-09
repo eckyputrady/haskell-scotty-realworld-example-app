@@ -1,12 +1,9 @@
 import ClassyPrelude
-import Control.Monad.Except hiding (forM_)
-import Struct
 import Test.Hspec
 import System.Environment
 import Database.PostgreSQL.Simple
 import qualified RealWorldClient as RW
 import qualified Lib
-import Text.StringRandom
 
 import Spec.Common
 import qualified Spec.User as User
@@ -14,7 +11,7 @@ import qualified Spec.Article as Article
 import qualified Spec.Comment as Comment
 
 main :: IO ()
-main = withEnv . hspec . parallel $ do
+main = withEnv . hspec $ do
   User.spec
   Article.spec
   Comment.spec

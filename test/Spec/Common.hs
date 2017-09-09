@@ -35,4 +35,4 @@ createRandomArticle user tags = do
   runClient (RW.createArticle token param)
 
 runClient :: ExceptT e (ReaderT RW.RWBaseUrl m) a -> m (Either e a)
-runClient = flip runReaderT (RW.RWBaseUrl "http://localhost:3000/api") . runExceptT
+runClient = flip runReaderT (RW.RWBaseUrl "http://127.0.0.1:3000/api") . runExceptT
