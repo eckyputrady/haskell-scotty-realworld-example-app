@@ -1,0 +1,105 @@
+name:                realworld
+version:             1.0.0.0
+-- synopsis:
+-- description:
+homepage:            https://github.com/eckyputrady/haskell-scotty-realworld-example-app#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Ecky Putrady
+maintainer:          eckyputrady@gmail.com
+copyright:           2017 Ecky Putrady
+category:            Web
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Lib
+                     , RealWorldClient
+                     , Struct
+  other-modules:       RealWorld
+                     , JWT
+                     , PG
+                     , Web
+  build-depends:       base
+                     , classy-prelude
+                     , scotty
+                     , postgresql-simple
+                     , postgresql-simple-migration
+                     , uuid
+                     , string-random
+                     , data-has
+                     , aeson
+                     , time
+                     , mtl
+                     , monad-control
+                     , regex-compat
+                     , http-types
+                     , monad-logger
+                     , resource-pool
+                     , warp-tls
+                     , warp
+                     , digestive-functors
+                     , digestive-functors-aeson
+                     , lens
+                     , wai
+                     , jose-jwt
+                     , cryptonite
+                     , slug
+                     , convertible
+                     -- client
+                     , wreq
+                     , http-client
+  default-language:    Haskell2010
+  default-extensions:  NoImplicitPrelude
+                     , OverloadedStrings
+                     , TypeFamilies
+                     , FlexibleContexts
+                     , FlexibleInstances
+                     , ConstraintKinds
+                     , TemplateHaskell
+                     , ScopedTypeVariables
+                     , MultiParamTypeClasses
+                     , QuasiQuotes
+
+executable realworld-exe
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       classy-prelude
+                     , realworld
+  default-language:    Haskell2010
+  default-extensions:  NoImplicitPrelude
+                     , OverloadedStrings
+
+test-suite realworld-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  other-modules:       Spec
+                     , Spec.Common
+                     , Spec.User
+                     , Spec.Article
+                     , Spec.Comment
+  build-depends:       base
+                     , classy-prelude
+                     , realworld
+                     , hspec
+                     , postgresql-simple
+                     , postgresql-simple-migration
+                     , string-random
+                     , uuid
+                     , time
+                     , mtl
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+  default-extensions:  NoImplicitPrelude
+                     , OverloadedStrings
+                     , GeneralizedNewtypeDeriving
+                     , FlexibleContexts
+                     , TypeFamilies
+
+source-repository head
+  type:     git
+  location: https://github.com/eckyputrady/haskell-scotty-realworld-example-app
