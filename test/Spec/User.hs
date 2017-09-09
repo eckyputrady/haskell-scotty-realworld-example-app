@@ -13,7 +13,7 @@ spec = do
   userSpec
   profileSpec
 
-  
+
 userSpec :: Spec
 userSpec =
   describe "user" $ do
@@ -66,7 +66,8 @@ userSpec =
 
       it "should expire login eventually" $ do
         Right user <- registerRandomUser
-        threadDelay 5000000 -- wait 5 secs as expiration is 4 secs
+        -- TODO this waiting time is not ideal, need to find another way
+        threadDelay 9000000 -- wait (expiration + 1) secs
         let token = userToken user
         runClient (RW.getUser token)
           `shouldReturn` Left (RW.ErrUnauthorized TokenErrorExpired)

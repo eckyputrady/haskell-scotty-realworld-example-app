@@ -27,7 +27,7 @@ startEnv = do
   execPGQuery ["drop database if exists realworld_test", "create database realworld_test"]
   setEnv "DATABASE_URL" "postgresql://127.0.0.1/realworld_test"
   setEnv "ENABLE_HTTPS" "False"
-  setEnv "JWT_EXPIRATION_SECS" "4"
+  setEnv "JWT_EXPIRATION_SECS" "8"
   tId <- fork Lib.main
   unlessM healthCheck $ do
     putStrLn "Waiting for server ..."
