@@ -200,7 +200,8 @@ updateArticle curUser slug param = do
   getArticle (Just curUser) newSlug
   where
     qry = "update articles \
-          \set slug = ?, title = coalesce(?, title), description = coalesce(?, description), body = coalesce(?, body) \
+          \set slug = ?, title = coalesce(?, title), description = coalesce(?, description), \
+          \    body = coalesce(?, body), updated_at = now() \
           \where slug = ?"
 
 genSlug :: Text -> Integer -> EpochTime -> Text

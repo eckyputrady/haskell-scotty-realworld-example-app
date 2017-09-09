@@ -54,8 +54,9 @@ articleSpec =
         Right article <- createRandomArticle user []
         newTitle <- stringRandomIO "[a-zA-Z0-9 ]{5}"
         Right article' <- runClient (RW.updateArticle (userToken user) (articleSlug article) $ UpdateArticle (Just newTitle) Nothing Nothing)
-        let expected = article { articleSlug = articleSlug article', articleTitle = newTitle }
+        let expected = article { articleSlug = articleSlug article', articleTitle = newTitle, articleUpdatedAt = articleUpdatedAt article' }
         article' `shouldBe` expected
+        (articleUpdatedAt article < articleUpdatedAt article') `shouldBe` True
 
       it "should update desc, body successfully" $ do
         Right user <- registerRandomUser
@@ -63,8 +64,9 @@ articleSpec =
         newDesc <- stringRandomIO "[a-zA-Z0-9 ]{5}"
         newBody <- stringRandomIO "[a-zA-Z0-9 ]{5}"
         Right article' <- runClient (RW.updateArticle (userToken user) (articleSlug article) $ UpdateArticle Nothing (Just newDesc) (Just newBody))
-        let expected = article { articleSlug = articleSlug article', articleDescription = newDesc, articleBody = newBody }
+        let expected = article { articleSlug = articleSlug article', articleDescription = newDesc, articleBody = newBody, articleUpdatedAt = articleUpdatedAt article' }
         article' `shouldBe` expected
+        (articleUpdatedAt article < articleUpdatedAt article') `shouldBe` True
 
     describe "delete articles" $ do
 
