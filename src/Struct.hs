@@ -146,12 +146,13 @@ data CommentError
 -- * Wrappers
 
 newtype UserWrapper a = UserWrapper { userWrapperUser :: a } deriving (Eq, Show)
-newtype ArticleWrapper a = ArticleWrapper { articleWrapperArticle :: a } deriving (Eq, Show)
-newtype ArticlesWrapper a = ArticlesWrapper { articlesWrapperArticles :: a } deriving (Eq, Show)
+newtype ProfileWrapper a = ProfileWrapper { profileWrapperProfile :: a } deriving (Eq, Show)
 newtype CommentWrapper a = CommentWrapper { commentWrapperComment :: a } deriving (Eq, Show)
-newtype CommentsWrapper a = CommentsWrapper { commentsWrapperComments :: a } deriving (Eq, Show)
+newtype CommentsWrapper a = CommentsWrapper { commentsWrapperComments :: [a] } deriving (Eq, Show)
 newtype TagsWrapper a = TagsWrapper { tagsWrapperTags :: a } deriving (Eq, Show)
 newtype ErrorsWrapper a = ErrorsWrapper { errorsWrapperErrors :: a } deriving (Eq, Show)
+newtype ArticleWrapper a = ArticleWrapper { articleWrapperArticle :: a } deriving (Eq, Show)
+data ArticlesWrapper a = ArticlesWrapper { articlesWrapperArticles :: [a], articlesWrapperArticlesCount :: Int } deriving (Eq, Show)
 
 
 -- * JSON SerDe
@@ -171,6 +172,7 @@ $(concat <$>
   , ''ArticleError
   , ''CommentError
   , ''UserWrapper
+  , ''ProfileWrapper
   , ''ArticleWrapper
   , ''ArticlesWrapper
   , ''CommentWrapper

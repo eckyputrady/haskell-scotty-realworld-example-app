@@ -69,20 +69,20 @@ getProfile :: (RW UserError r m) => Maybe Token -> Username -> m Profile
 getProfile mayToken username = do
   url <- buildUrl $ "/profiles/" <> unpack username
   let opts = defaults & mayAuthHeader mayToken
-  userWrapperUser <$> exec (getWith opts url)
+  profileWrapperProfile <$> exec (getWith opts url)
 
 followUser :: (RW UserError r m) => Token -> Username -> m Profile
 followUser token username = do
   url <- buildUrl $ "/profiles/" <> unpack username <> "/follow"
   let body = Aeson.toJSON $ asText ""
   let opts = defaults & authHeader token
-  userWrapperUser <$> exec (postWith opts url body)
+  profileWrapperProfile <$> exec (postWith opts url body)
 
 unfollowUser :: (RW UserError r m) => Token -> Username -> m Profile
 unfollowUser token username = do
   url <- buildUrl $ "/profiles/" <> unpack username <> "/follow"
   let opts = defaults & authHeader token
-  userWrapperUser <$> exec (deleteWith opts url)
+  profileWrapperProfile <$> exec (deleteWith opts url)
 
 
 

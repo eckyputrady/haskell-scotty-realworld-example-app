@@ -57,6 +57,7 @@ routes = do
   
   defaultHandler errHandler
 
+
   -- users
 
   post "/api/users/login" $ do
@@ -87,19 +88,19 @@ routes = do
     curUser <- optionalUser
     username <- param "username"
     result <- raiseIfError AppErrorUser $ getProfile curUser username
-    json $ UserWrapper result
+    json $ ProfileWrapper result
 
   post "/api/profiles/:username/follow" $ do
     curUser <- requireUser
     username <- param "username"
     result <- raiseIfError AppErrorUser $ followUser curUser username
-    json $ UserWrapper result
+    json $ ProfileWrapper result
 
   delete "/api/profiles/:username/follow" $ do
     curUser <- requireUser
     username <- param "username"
     result <- raiseIfError AppErrorUser $ unfollowUser curUser username
-    json $ UserWrapper result
+    json $ ProfileWrapper result
 
 
   -- articles
@@ -109,13 +110,13 @@ routes = do
     pagination <- parsePagination
     articleFilter <- parseArticleFilter
     result <- raiseIfError AppErrorArticle $ getArticles curUser articleFilter pagination
-    json $ ArticlesWrapper result
+    json $ ArticlesWrapper result (length result)
 
   get "/api/articles/feed" $ do
     curUser <- requireUser
     pagination <- parsePagination
     result <- raiseIfError AppErrorArticle $ getFeed curUser pagination
-    json $ ArticlesWrapper result
+    json $ ArticlesWrapper result (length result)
 
   get "/api/articles/:slug" $ do
     curUser <- optionalUser
