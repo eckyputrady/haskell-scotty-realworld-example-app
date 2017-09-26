@@ -31,7 +31,8 @@ login auth = do
 
 register :: (RW UserError r m) => Register -> m User
 register param@(Register _ email pass) = do
-  result <- addUser param "https://static.productionready.io/images/smiley-cyrus.jpg"
+  let defaultImgUrl = "https://static.productionready.io/images/smiley-cyrus.jpg"
+  result <- addUser param defaultImgUrl
   either throwError return result
   login $ Auth email pass
 
@@ -51,141 +52,58 @@ updateUser curUser@(_, userId) param = do
 -- * Profiles
 
 getProfile :: (RW UserError r m) => Maybe CurrentUser -> Username -> m Profile
-getProfile mayCurUser username = do
-  conn <- asks getter
-  results <- liftIO $ query conn qry (snd <$> mayCurUser, username)
-  case results of
-    [a] -> return $ unFR a
-    _ -> throwError $ UserErrorNotFound username
-  where
-    qry = "select cast (name as text), bio, image, exists(select 1 from followings where user_id = id and followed_by = ?) as following \
-          \from users where name = ? limit 1"
+getProfile mayCurUser username =
+  findProfile (snd <$> mayCurUser) username `orThrow` UserErrorNotFound username
 
 followUser :: (RW UserError r m) => CurrentUser -> Username -> m Profile
 followUser curUser@(_, curUserId) username = do
-  conn <- asks getter
-  (void . liftIO $ execute conn qry (curUserId, username))
-    `catch` \SqlError{sqlState="23503"} -> throwError (UserErrorNotFound username)
+  result <- followUserByUsername curUserId username
+  either throwError return result
   getProfile (Just curUser) username
-  where
-    qry = "insert into followings (followed_by, user_id) (select ?, id from users where name = ? limit 1) on conflict do nothing"
 
 unfollowUser :: (RW UserError r m) => CurrentUser -> Username -> m Profile
 unfollowUser curUser@(_, curUserId) username = do
-  conn <- asks getter
-  void . liftIO $ execute conn qry (curUserId, username)
+  unfollowUserByUsername curUserId username
   getProfile (Just curUser) username
-  where
-    qry = "delete from followings where followed_by = ? and user_id in (select id from users where name = ? limit 1)"
 
 
 
 
 -- * Articles
 
-getArticles' :: (RW ArticleError r m) => Maybe Slug -> Maybe Bool -> Maybe CurrentUser -> ArticleFilter -> Pagination -> m [Article]
-getArticles' maySlug mayFollowing mayCurrentUser articleFilter pagination = do
-  conn <- asks getter
-  results <- liftIO $ query conn qry arg
-  return $ unFR <$> results
-  where
-    qry = [sql|
-            with profiles as (
-              select
-                id, name, bio, image, exists(select 1 from followings where user_id = id and followed_by = ?) as following
-              from
-                users
-            ),
-            formatted_articles as (
-              select 
-                articles.id, slug, title, description, body, tags, created_at, updated_at,
-                exists(select 1 from favorites where article_id = articles.id and favorited_by = ?) as favorited,
-                (select count(1) from favorites where article_id = articles.id) as favorites_count,
-                profiles.name as pname, profiles.bio as pbio, profiles.image as pimage, profiles.following as pfollowing
-              from
-                articles join profiles on articles.author_id = profiles.id
-            )
-            select
-              cast (slug as text), title, description, body, cast (tags as text[]), created_at, updated_at,
-              favorited, favorites_count, cast (pname as text), pbio, pimage, pfollowing
-            from
-              formatted_articles
-            where
-              -- by slug (for find one)
-              coalesce(slug in ?, true) AND
-              -- by if user following author (for feed)
-              coalesce(pfollowing in ?, true) and
-              -- by tag (for normal filter)
-              (cast (tags as text[]) @> ?) and
-              -- by author (for normal filter)
-              coalesce (pname in ?, true) and
-              -- by fav by (for normal filter)
-              (? is null OR exists(
-                select 1 
-                from favorites join users on users.id = favorites.favorited_by 
-                where article_id = formatted_articles.id and users.name = ?)
-              )
-            order by id desc
-            limit greatest(0, ?) offset greatest(0, ?)
-          |]
-    curUserId = maybe (-1) snd mayCurrentUser
-    arg = ( curUserId, curUserId
-          -- ^ 2 slots for current user id
-          , In $ maybeToList maySlug
-          -- ^ 1 slot for slug
-          , In $ maybeToList $ mayFollowing
-          -- ^ 1 slot for following
-          , PGArray $ maybeToList $ articleFilterTag articleFilter
-          -- ^ 1 slot for tags
-          , In $ maybeToList $ articleFilterAuthor articleFilter
-          -- ^ 1 slot for author
-          , articleFilterFavoritedBy articleFilter, articleFilterFavoritedBy articleFilter
-          -- ^ 2 slots for favorited by user name
-          , paginationLimit pagination, paginationOffset pagination
-          -- ^ 2 slot for limit & offset
-          )
-
 getArticles :: (RW ArticleError r m) => Maybe CurrentUser -> ArticleFilter -> Pagination -> m [Article]
-getArticles = getArticles' Nothing Nothing
+getArticles = findArticles Nothing Nothing
 
 getFeed :: (RW ArticleError r m) => CurrentUser -> Pagination -> m [Article]
 getFeed curUser pagination =
-  getArticles' Nothing (Just True) (Just curUser) (ArticleFilter Nothing Nothing Nothing) pagination
+  findArticles Nothing (Just True) (Just curUser) (ArticleFilter Nothing Nothing Nothing) pagination
 
 getArticle :: (RW ArticleError r m) => Maybe CurrentUser -> Slug -> m Article
 getArticle mayCurUser slug = do
-  result <- getArticles' (Just slug) Nothing mayCurUser (ArticleFilter Nothing Nothing Nothing) (Pagination 1 0)
+  result <- findArticles (Just slug) Nothing mayCurUser (ArticleFilter Nothing Nothing Nothing) (Pagination 1 0)
   case result of
     [article] -> return article
     _ -> throwError $ ArticleErrorNotFound slug
 
 createArticle :: (RW ArticleError r m) => CurrentUser -> CreateArticle -> m Article
 createArticle curUser@(_, curUserId) param = do
-  createdAt <- liftIO getCurrentTime
-  let slug = genSlug (createArticleTitle param) curUserId (convert createdAt)
-  conn <- asks getter
-  void . liftIO $ execute conn qry 
-    ( slug, createArticleTitle param, createArticleDescription param, createArticleBody param
-    , createdAt, createdAt, curUserId, PGArray $ createArticleTagList param
-    )
+  slug <- genSlug' (createArticleTitle param) curUserId
+  addArticle curUserId param slug
   getArticle (Just curUser) slug
-  where
-    qry = "insert into articles (slug, title, description, body, created_at, updated_at, author_id, tags) \
-          \values (?, ?, ?, ?, ?, ?, ?, ?)"
  
 updateArticle :: (RW ArticleError r m) => CurrentUser -> Slug -> UpdateArticle -> m Article
 updateArticle curUser slug param = do
   validateArticleOwnedBy (snd curUser) slug
-  createdAt <- liftIO getCurrentTime
-  let newSlug = fromMaybe slug $ (\newTitle -> genSlug newTitle (snd curUser) (convert createdAt)) <$> (updateArticleTitle param)
-  conn <- asks getter
-  void . liftIO $ execute conn qry (newSlug, updateArticleTitle param, updateArticleDescription param, updateArticleBody param, slug)
+  newSlug <- case updateArticleTitle param of
+    Nothing -> return slug
+    Just newTitle -> genSlug' newTitle (snd curUser)
+  updateArticleBySlug slug param newSlug
   getArticle (Just curUser) newSlug
-  where
-    qry = "update articles \
-          \set slug = ?, title = coalesce(?, title), description = coalesce(?, description), \
-          \    body = coalesce(?, body), updated_at = now() \
-          \where slug = ?"
+
+genSlug' :: (MonadIO m) => Text -> Integer -> m Text
+genSlug' title uId = do
+  createdAt <- liftIO getCurrentTime
+  return $ genSlug title uId $ convert createdAt
 
 genSlug :: Text -> Integer -> EpochTime -> Text
 genSlug title userId unixTs = 
@@ -194,21 +112,7 @@ genSlug title userId unixTs =
 deleteArticle :: (RW ArticleError r m) => CurrentUser -> Slug -> m ()
 deleteArticle (_, curUserId) slug = do
   validateArticleOwnedBy curUserId slug
-  conn <- asks getter
-  void . liftIO $ execute conn qry (Only slug)
-  where
-    qry = "delete from articles where slug = ?"
-
-validateArticleOwnedBy :: (RW ArticleError r m) => UserId -> Slug -> m ()
-validateArticleOwnedBy userId slug = do
-  conn <- asks getter
-  result <- liftIO $ query conn qry (userId, slug)
-  case result of
-    [Only True] -> return ()
-    [Only False] -> throwError $ ArticleErrorNotAllowed slug
-    _ -> throwError $ ArticleErrorNotFound slug
-  where
-    qry = "select author_id = ? from articles where slug = ? limit 1"
+  deleteArticleBySlug slug
 
 
 
@@ -344,16 +248,16 @@ getTags = do
     qry = "select cast(tag as text) from (select distinct unnest(tags) as tag from articles) tags"
 
 
--- * PG Deserializations
+-- -- * PG Deserializations
 
--- newtype so that we can create non-orphan FromRow instance
-newtype FRow a = FRow { unFR :: a }
+-- -- newtype so that we can create non-orphan FromRow instance
+-- newtype FRow a = FRow { unFR :: a }
 
-instance FromRow (FRow Comment) where
-  fromRow = FRow <$> (Comment <$> field <*> field <*> field <*> field <*> (unFR <$> fromRow))
+-- instance FromRow (FRow Comment) where
+--   fromRow = FRow <$> (Comment <$> field <*> field <*> field <*> field <*> (unFR <$> fromRow))
 
-instance FromRow (FRow Article) where
-  fromRow = FRow <$> (Article <$> field <*> field <*> field <*> field <*> (fromPGArray <$> field) <*> field <*> field <*> field <*> field <*> (unFR <$> fromRow))
+-- instance FromRow (FRow Article) where
+--   fromRow = FRow <$> (Article <$> field <*> field <*> field <*> field <*> (fromPGArray <$> field) <*> field <*> field <*> field <*> field <*> (unFR <$> fromRow))
 
-instance FromRow (FRow Profile) where
-  fromRow = FRow <$> (Profile <$> field <*> field <*> field <*> field)
+-- instance FromRow (FRow Profile) where
+--   fromRow = FRow <$> (Profile <$> field <*> field <*> field <*> field)

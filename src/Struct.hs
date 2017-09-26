@@ -81,9 +81,9 @@ class (Monad m) => UserRepo m where
   -- updateUserById :: UserId -> UpdateUser -> m (Either UserError ())
 
 class (Monad m) => ProfileRepo m where
-  findProfile :: Maybe UserId -> Username -> m (Maybe Profile)
-  followUserByUsername :: UserId -> Username -> m (Either UserError ())
-  unfollowUserByUsername :: UserId -> Username -> m () 
+  -- findProfile :: Maybe UserId -> Username -> m (Maybe Profile)
+  -- followUserByUsername :: UserId -> Username -> m (Either UserError ())
+  -- unfollowUserByUsername :: UserId -> Username -> m () 
 
 
 -- * Articles
@@ -130,16 +130,16 @@ data ArticleError
   deriving (Eq, Show)
 
 class (Monad m) => ArticleRepo m where
-  findArticles :: Maybe Slug -> Maybe Bool -> Maybe CurrentUser
-               -> ArticleFilter -> Pagination
-               -> m [Article]
-  addArticle :: UserId -> CreateArticle -> m ()
-  updateArticleBySlug :: UserId -> Slug -> UpdateArticle -> m ()
-  deleteArticleBySlug :: Slug -> m ()
-  favoriteArticleBySlug :: UserId -> Slug -> m ()
-  unfavoriteArticleBySlug :: UserId -> Slug -> m ()
-  isArticleOwnedBy :: UserId -> Slug -> m Bool
-  isArticleExist :: Slug -> m Bool
+  -- findArticles :: Maybe Slug -> Maybe Bool -> Maybe CurrentUser
+  --              -> ArticleFilter -> Pagination
+  --              -> m [Article]
+  -- addArticle :: UserId -> CreateArticle -> m ()
+  -- updateArticleBySlug :: Slug -> UpdateArticle -> Slug -> m ()
+  -- deleteArticleBySlug :: Slug -> m ()
+  -- favoriteArticleBySlug :: UserId -> Slug -> m ()
+  -- unfavoriteArticleBySlug :: UserId -> Slug -> m ()
+  -- isArticleOwnedBy :: UserId -> Slug -> m Bool
+  -- isArticleExist :: Slug -> m Bool
   
 class (Monad m) => TagRepo m where
   allTags :: m (Set Tag)
