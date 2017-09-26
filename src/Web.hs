@@ -5,7 +5,7 @@ module Web
 import ClassyPrelude hiding (delete)
 
 import Struct
-import RealWorld
+import RealWorld hiding (orThrow)
 import Control.Monad.Except
 import Crypto.Random.Types (MonadRandom, getRandomBytes)
 import Web.Scotty.Trans
