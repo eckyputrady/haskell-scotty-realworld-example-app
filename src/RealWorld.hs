@@ -3,11 +3,6 @@ module RealWorld where
 import ClassyPrelude hiding (RealWorld)
 import Struct
 import Control.Monad.Except
-import Database.PostgreSQL.Simple
-import Database.PostgreSQL.Simple.FromRow
-import Database.PostgreSQL.Simple.SqlQQ
-import Database.PostgreSQL.Simple.Types
-import Data.Has
 import PG
 import JWT
 import qualified Web.Slug as WSlug
@@ -175,18 +170,3 @@ validateCommentExists cId = do
 
 getTags :: (RW e r m) => m (Set Tag)
 getTags = allTags
-
-
--- -- * PG Deserializations
-
--- -- newtype so that we can create non-orphan FromRow instance
--- newtype FRow a = FRow { unFR :: a }
-
--- instance FromRow (FRow Comment) where
---   fromRow = FRow <$> (Comment <$> field <*> field <*> field <*> field <*> (unFR <$> fromRow))
-
--- instance FromRow (FRow Article) where
---   fromRow = FRow <$> (Article <$> field <*> field <*> field <*> field <*> (fromPGArray <$> field) <*> field <*> field <*> field <*> field <*> (unFR <$> fromRow))
-
--- instance FromRow (FRow Profile) where
---   fromRow = FRow <$> (Profile <$> field <*> field <*> field <*> field)
