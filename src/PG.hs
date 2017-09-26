@@ -165,6 +165,26 @@ validateArticleOwnedBy uId slug = do
   where
     qry = "select author_id = ? from articles where slug = ? limit 1"
 
+favoriteArticleBySlug :: PG r m => UserId -> Slug -> m ()
+favoriteArticleBySlug uId slug = do
+  conn <- asks getter
+  void . liftIO $ execute conn qry (uId, slug)
+  where
+    qry = "with cte as ( \
+          \ select id, ? from articles where slug = ? limit 1 \
+          \) \
+          \insert into favorites (article_id, favorited_by) (select * from cte) on conflict do nothing"
+
+unfavoriteArticleBySlug :: PG r m => UserId -> Slug -> m ()
+unfavoriteArticleBySlug uId slug = do
+  conn <- asks getter
+  void . liftIO $ execute conn qry (slug, uId)
+  where
+    qry = "with cte as ( \
+          \ select id from articles where slug = ? limit 1 \
+          \) \
+          \delete from favorites where article_id in (select id from cte) and favorited_by = ?"
+
 findArticles  :: PG r m
               => Maybe Slug -> Maybe Bool -> Maybe CurrentUser
               -> ArticleFilter -> Pagination

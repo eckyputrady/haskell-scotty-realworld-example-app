@@ -120,27 +120,13 @@ deleteArticle (_, curUserId) slug = do
 
 favoriteArticle :: (RW ArticleError r m) => CurrentUser -> Slug -> m Article
 favoriteArticle curUser@(_, curUserId) slug = do
-  conn <- asks getter
-  void . liftIO $ execute conn qry arg
+  favoriteArticleBySlug curUserId slug
   getArticle (Just curUser) slug
-  where
-    qry = "with cte as ( \
-          \ select id, ? from articles where slug = ? limit 1 \
-          \) \
-          \insert into favorites (article_id, favorited_by) (select * from cte) on conflict do nothing"
-    arg = (curUserId, slug)
 
 unfavoriteArticle :: (RW ArticleError r m) => CurrentUser -> Slug -> m Article
 unfavoriteArticle curUser@(_, curUserId) slug = do
-  conn <- asks getter
-  void . liftIO $ execute conn qry arg
+  unfavoriteArticleBySlug curUserId slug
   getArticle (Just curUser) slug
-  where
-    qry = "with cte as ( \
-          \ select id from articles where slug = ? limit 1 \
-          \) \
-          \delete from favorites where article_id in (select id from cte) and favorited_by = ?"
-    arg = (slug, curUserId)
 
 
 
