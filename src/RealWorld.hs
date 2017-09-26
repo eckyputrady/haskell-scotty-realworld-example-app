@@ -16,52 +16,35 @@ import System.Posix.Types (EpochTime)
 
 type RW e r m = (MonadError e m, PG r m, JWT r m)
 
+orThrow :: (MonadError e m) => m (Maybe a) -> e -> m a
+orThrow action e = do
+  result <- action
+  maybe (throwError e) return result
+
 -- * User
 
 login :: (RW UserError r m) => Auth -> m User
-login auth@(Auth email pass) = do
-  conn <- asks getter
-  results <- liftIO $ query conn qry (email, pass)
-  case results of
-    [(uId, name, bio, image)] -> do
-      token <- generateToken uId
-      return $ User email token name bio image
-    _ ->
-      throwError $ UserErrorBadAuth auth
-  where
-    qry = "select id, cast (name as text), bio, image from users where email = ? AND pass = ? limit 1"
+login auth = do
+  (uId, user) <- findUserByAuth auth `orThrow` UserErrorBadAuth auth
+  token <- generateToken uId
+  return $ user { userToken = token }
 
 register :: (RW UserError r m) => Register -> m User
-register (Register name email pass) = do
-  conn <- asks getter
-  (void . liftIO $ execute conn "insert into users (name, email, pass, bio, image) values (?, ?, ?, '', 'https://static.productionready.io/images/smiley-cyrus.jpg')" (name, email, pass))
-    `catch` handleSqlUserError email name
-  login (Auth email pass)
+register param@(Register _ email pass) = do
+  result <- addUser param "https://static.productionready.io/images/smiley-cyrus.jpg"
+  either throwError return result
+  login $ Auth email pass
 
 getUser :: (RW UserError r m) => CurrentUser -> m User
 getUser (token, userId) = do
-  conn <- asks getter
-  results <- liftIO $ query conn qry (Only userId)
-  case results of
-    [(name, email, bio, image)] -> return $ User email token name bio image
-    _ -> throwError $ UserErrorNotFound $ tshow userId
-  where
-    qry = "select cast (name as text), cast (email as text), bio, image from users where id = ? limit 1"
+  user <- findUserById userId `orThrow` UserErrorNotFound (tshow userId)
+  return $ user { userToken = token }
 
 updateUser :: (RW UserError r m) => CurrentUser -> UpdateUser -> m User
-updateUser (token, userId) (UpdateUser email uname pass img bio) = do
-  conn <- asks getter
-  (void . liftIO $ execute conn qry (email, uname, pass, img, bio, userId))
-    `catch` handleSqlUserError (fromMaybe "" email) (fromMaybe "" uname)
-  getUser (token, userId)
-  where
-    qry = "update users set \
-          \email = coalesce(?, email), \
-          \name = coalesce(?, name), \
-          \pass = coalesce(?, pass), \
-          \image = coalesce(?, image), \
-          \bio = coalesce(?, bio) \
-          \where id = ?"
+updateUser curUser@(_, userId) param = do
+  result <- updateUserById userId param
+  either throwError return result
+  getUser curUser
 
 
 
@@ -359,20 +342,6 @@ getTags = do
   return $ setFromList $ (\(Only tag) -> tag) <$> results
   where
     qry = "select cast(tag as text) from (select distinct unnest(tags) as tag from articles) tags"
-
-
-
--- * Utils
-
-isUniqueConstraintsViolation :: SqlError -> ByteString -> Bool
-isUniqueConstraintsViolation SqlError{sqlState = state, sqlErrorMsg = msg} constraintName =
-  state == "23505" && constraintName `isInfixOf` msg
-
-handleSqlUserError :: (MonadError UserError m) => Email -> Username -> SqlError -> m a
-handleSqlUserError email username sqlError = do
-  when (isUniqueConstraintsViolation sqlError "users_email_key") (throwError $ UserErrorEmailTaken email)
-  when (isUniqueConstraintsViolation sqlError "users_name_key") (throwError $ UserErrorNameTaken username)
-  error $ "Unknown SQL error: " <> show sqlError
 
 
 -- * PG Deserializations

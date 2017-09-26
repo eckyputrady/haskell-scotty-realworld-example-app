@@ -2,6 +2,7 @@ module Struct where
 
 import ClassyPrelude
 import Data.Aeson.TH
+import Control.Monad.Except
 
 
 -- * Misc
@@ -73,6 +74,17 @@ data TokenError
   | TokenErrorMalformed String
   deriving (Eq, Show)
 
+class (Monad m) => UserRepo m where
+  -- findUserByAuth :: Auth -> m (Maybe (UserId, User))
+  -- findUserById :: UserId -> m (Maybe User)
+  -- addUser :: Register -> m (Either UserError ())
+  -- updateUserById :: UserId -> UpdateUser -> m (Either UserError ())
+
+class (Monad m) => ProfileRepo m where
+  findProfile :: Maybe UserId -> Username -> m (Maybe Profile)
+  followUserByUsername :: UserId -> Username -> m (Either UserError ())
+  unfollowUserByUsername :: UserId -> Username -> m () 
+
 
 -- * Articles
 
@@ -117,6 +129,21 @@ data ArticleError
   | ArticleErrorNotAllowed Slug
   deriving (Eq, Show)
 
+class (Monad m) => ArticleRepo m where
+  findArticles :: Maybe Slug -> Maybe Bool -> Maybe CurrentUser
+               -> ArticleFilter -> Pagination
+               -> m [Article]
+  addArticle :: UserId -> CreateArticle -> m ()
+  updateArticleBySlug :: UserId -> Slug -> UpdateArticle -> m ()
+  deleteArticleBySlug :: Slug -> m ()
+  favoriteArticleBySlug :: UserId -> Slug -> m ()
+  unfavoriteArticleBySlug :: UserId -> Slug -> m ()
+  isArticleOwnedBy :: UserId -> Slug -> m Bool
+  isArticleExist :: Slug -> m Bool
+  
+class (Monad m) => TagRepo m where
+  allTags :: m (Set Tag)
+
 
 
 -- * Comments
@@ -141,6 +168,12 @@ data CommentError
   | CommentErrorNotAllowed CommentId
   deriving (Eq, Show)
 
+class (Monad m) => CommentRepo m where
+  addCommentToSlug :: UserId -> Slug -> Text -> m CommentId
+  delCommentFromSlug :: Slug -> CommentId -> m ()
+  findComments :: Maybe UserId -> Slug -> Maybe CommentId -> m [Comment]
+  isCommentOwnedBy :: UserId -> CommentId -> m Bool
+  isCommentExist :: CommentId -> m Bool
 
 
 -- * Wrappers
