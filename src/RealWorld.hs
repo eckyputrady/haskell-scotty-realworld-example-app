@@ -134,33 +134,18 @@ unfavoriteArticle curUser@(_, curUserId) slug = do
 
 addComment :: (RW CommentError r m) => CurrentUser -> Slug -> Text -> m Comment
 addComment curUser@(_, curUserId) slug comment = do
-  conn <- asks getter
-  results <- liftIO $ query conn qry arg
-  cId <- return $ case results of
-    [Only cmtId] -> cmtId
-    _ -> -1
+  cId <- addCommentToSlug curUserId slug comment
   comments <- getComments' (Just curUser) slug (Just cId)
   case comments of
     [a] -> return a
     _ -> throwError $ CommentErrorNotFound cId
-  where
-    qry = "with cte as ( \
-          \ select id from articles where slug = ? limit 1 \
-          \) \
-          \insert into comments (article_id, created_at, updated_at, body, author_id) \
-          \(select id, now(), now(), ?, ? from cte) \
-          \returning id"
-    arg = (slug, comment, curUserId)
 
 delComment :: (RW CommentError r m) => CurrentUser -> Slug -> CommentId -> m ()
 delComment (_, curUserId) slug cId = do
   validateArticleExists slug
   validateCommentExists cId
   validateCommentOwnedBy curUserId cId
-  conn <- asks getter
-  void . liftIO $ execute conn qry (Only cId)
-  where
-    qry = "delete from comments where id = ?"
+  delCommentFromSlug slug cId
 
 getComments :: (RW CommentError r m) => Maybe CurrentUser -> Slug -> m [Comment]
 getComments mayCurUser slug = getComments' mayCurUser slug Nothing
@@ -168,59 +153,22 @@ getComments mayCurUser slug = getComments' mayCurUser slug Nothing
 getComments' :: (RW CommentError r m) => Maybe CurrentUser -> Slug -> Maybe CommentId -> m [Comment]
 getComments' mayCurUser slug mayCommentId = do
   validateArticleExists slug
-  conn <- asks getter
-  results <- liftIO $ query conn qry arg
-  return $ unFR <$> results
-  where
-    qry = [sql|
-            with profiles as (
-              select
-                id, name, bio, image, exists(select 1 from followings where user_id = id and followed_by = ?) as following
-              from
-                users
-            ), formatted_comments as (
-              select
-                c.article_id, c.id, c.created_at, c.updated_at, c.body,
-                p.name as pname, p.bio as pbio, p.image as pimage, p.following as pfollowing
-              from
-                comments c join profiles p on p.id = c.author_id
-            )
-            select
-              c.id, c.created_at, c.updated_at, c.body,
-              cast (c.pname as text), c.pbio, c.pimage, c.pfollowing
-            from
-              formatted_comments c join articles a on c.article_id = a.id
-            where
-              a.slug = ? and
-              coalesce(c.id = ?, true)
-          |]
-    arg = (snd <$> mayCurUser, slug, mayCommentId)
+  findComments (snd <$> mayCurUser) slug mayCommentId
 
 validateArticleExists :: (RW CommentError r m) => Slug -> m ()
 validateArticleExists slug = do
-  conn <- asks getter
-  results <- liftIO $ query conn qry (Only slug)
-  unless (results == [Only True]) $ throwError $ CommentErrorSlugNotFound slug
-  where
-    qry = "select true from articles where slug = ? limit 1"
+  result <- isArticleExist slug
+  unless result $ throwError (CommentErrorSlugNotFound slug)
 
 validateCommentOwnedBy :: (RW CommentError r m) => UserId -> CommentId -> m ()
 validateCommentOwnedBy uId cId = do
-  conn <- asks getter
-  results <- liftIO $ query conn qry arg
-  unless (results == [Only True]) $ throwError $ CommentErrorNotAllowed cId
-  where
-    qry = "select true from comments where author_id = ? and id = ? limit 1"
-    arg = (uId, cId)
+  result <- isCommentOwnedBy uId cId
+  unless result $ throwError (CommentErrorNotAllowed cId)
 
 validateCommentExists :: (RW CommentError r m) => CommentId -> m ()
 validateCommentExists cId = do
-  conn <- asks getter
-  results <- liftIO $ query conn qry arg
-  unless (results == [Only True]) $ throwError $ CommentErrorNotFound cId
-  where
-    qry = "select true from comments where id = ? limit 1"
-    arg = (Only cId)
+  result <- isCommentExist cId
+  unless result $ throwError (CommentErrorNotFound cId)
 
 
 -- * Tags

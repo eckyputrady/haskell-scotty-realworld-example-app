@@ -169,11 +169,11 @@ data CommentError
   deriving (Eq, Show)
 
 class (Monad m) => CommentRepo m where
-  addCommentToSlug :: UserId -> Slug -> Text -> m CommentId
-  delCommentFromSlug :: Slug -> CommentId -> m ()
-  findComments :: Maybe UserId -> Slug -> Maybe CommentId -> m [Comment]
-  isCommentOwnedBy :: UserId -> CommentId -> m Bool
-  isCommentExist :: CommentId -> m Bool
+  -- addCommentToSlug :: UserId -> Slug -> Text -> m CommentId
+  -- delCommentFromSlug :: Slug -> CommentId -> m ()
+  -- findComments :: Maybe UserId -> Slug -> Maybe CommentId -> m [Comment]
+  -- isCommentOwnedBy :: UserId -> CommentId -> m Bool
+  -- isCommentExist :: CommentId -> m Bool
 
 
 -- * Wrappers

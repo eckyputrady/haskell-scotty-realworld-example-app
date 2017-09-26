@@ -249,6 +249,88 @@ findArticles maySlug mayFollowing mayCurrentUser articleFilter pagination = do
           , paginationLimit pagination, paginationOffset pagination
           -- ^ 2 slot for limit & offset
           )
+          
+isArticleExist :: PG r m => Slug -> m Bool
+isArticleExist slug = do
+  conn <- asks getter
+  results <- liftIO $ query conn qry (Only slug)
+  return $ results == [Only True]
+  where
+    qry = "select true from articles where slug = ? limit 1"
+
+
+-- * Comments
+
+findComments :: PG r m => Maybe UserId -> Slug -> Maybe CommentId -> m [Comment]
+findComments mayUserId slug mayCommentId = do
+  conn <- asks getter
+  results <- liftIO $ query conn qry arg
+  return $ unFR <$> results
+  where
+    qry = [sql|
+            with profiles as (
+              select
+                id, name, bio, image, exists(select 1 from followings where user_id = id and followed_by = ?) as following
+              from
+                users
+            ), formatted_comments as (
+              select
+                c.article_id, c.id, c.created_at, c.updated_at, c.body,
+                p.name as pname, p.bio as pbio, p.image as pimage, p.following as pfollowing
+              from
+                comments c join profiles p on p.id = c.author_id
+            )
+            select
+              c.id, c.created_at, c.updated_at, c.body,
+              cast (c.pname as text), c.pbio, c.pimage, c.pfollowing
+            from
+              formatted_comments c join articles a on c.article_id = a.id
+            where
+              a.slug = ? and
+              coalesce(c.id = ?, true)
+          |]
+    arg = (mayUserId, slug, mayCommentId)
+
+addCommentToSlug :: PG r m => UserId -> Slug -> Text -> m CommentId
+addCommentToSlug uId slug comment = do
+  conn <- asks getter
+  results <- liftIO $ query conn qry arg
+  return $ case results of
+    [Only cmtId] -> cmtId
+    _ -> -1
+  where
+    qry = "with cte as ( \
+          \ select id from articles where slug = ? limit 1 \
+          \) \
+          \insert into comments (article_id, created_at, updated_at, body, author_id) \
+          \(select id, now(), now(), ?, ? from cte) \
+          \returning id"
+    arg = (slug, comment, uId)
+
+isCommentExist :: PG r m => CommentId -> m Bool
+isCommentExist cId = do
+  conn <- asks getter
+  results <- liftIO $ query conn qry arg
+  return $ results == [Only True]
+  where
+    qry = "select true from comments where id = ? limit 1"
+    arg = (Only cId)
+
+isCommentOwnedBy :: PG r m => UserId -> CommentId -> m Bool
+isCommentOwnedBy uId cId = do
+  conn <- asks getter
+  results <- liftIO $ query conn qry arg
+  return $ results == [Only True]
+  where
+    qry = "select true from comments where author_id = ? and id = ? limit 1"
+    arg = (uId, cId)
+  
+delCommentFromSlug :: PG r m => Slug -> CommentId -> m ()
+delCommentFromSlug slug cId = do
+  conn <- asks getter
+  void . liftIO $ execute conn qry (Only cId)
+  where
+    qry = "delete from comments where id = ?"
 
 -- * PG Deserializations
 
