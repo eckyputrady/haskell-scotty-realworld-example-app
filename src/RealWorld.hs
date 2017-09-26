@@ -174,12 +174,7 @@ validateCommentExists cId = do
 -- * Tags
 
 getTags :: (RW e r m) => m (Set Tag)
-getTags = do
-  conn <- asks getter
-  results <- liftIO $ query_ conn qry
-  return $ setFromList $ (\(Only tag) -> tag) <$> results
-  where
-    qry = "select cast(tag as text) from (select distinct unnest(tags) as tag from articles) tags"
+getTags = allTags
 
 
 -- -- * PG Deserializations

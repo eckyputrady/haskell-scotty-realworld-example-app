@@ -332,6 +332,17 @@ delCommentFromSlug slug cId = do
   where
     qry = "delete from comments where id = ?"
 
+
+-- * Tags
+
+allTags :: PG r m => m (Set Tag)
+allTags = do
+  conn <- asks getter
+  results <- liftIO $ query_ conn qry
+  return $ setFromList $ (\(Only tag) -> tag) <$> results
+  where
+    qry = "select cast(tag as text) from (select distinct unnest(tags) as tag from articles) tags"
+
 -- * PG Deserializations
 
 -- newtype so that we can create non-orphan FromRow instance

@@ -142,7 +142,7 @@ class (Monad m) => ArticleRepo m where
   -- isArticleExist :: Slug -> m Bool
   
 class (Monad m) => TagRepo m where
-  allTags :: m (Set Tag)
+  -- allTags :: m (Set Tag)
 
 
 
