@@ -88,7 +88,11 @@ class (Monad m) => UserRepo m where
 class (Monad m) => ProfileRepo m where
   findProfile :: Maybe UserId -> Username -> m (Maybe Profile)
   followUserByUsername :: (AsUserError e) => UserId -> Username -> m (Either e ())
-  unfollowUserByUsername :: UserId -> Username -> m () 
+  unfollowUserByUsername :: UserId -> Username -> m ()
+
+class (Monad m) => TokenRepo m where
+  generateToken :: UserId -> m Token
+  resolveToken :: Token -> m (Either TokenError CurrentUser)
 
 
 -- * Articles
@@ -147,6 +151,9 @@ class (Monad m) => ArticleRepo m where
   unfavoriteArticleBySlug :: UserId -> Slug -> m ()
   isArticleOwnedBy :: UserId -> Slug -> m (Maybe Bool)
   isArticleExist :: Slug -> m Bool
+
+class (Monad m) => TimeRepo m where
+  currentTime :: m UTCTime
   
 class (Monad m) => TagRepo m where
   allTags :: m (Set Tag)
@@ -229,9 +236,16 @@ $(concat <$>
 
 -- * Common instances
 
-type AllRepo m = (CommentRepo m, ArticleRepo m, TagRepo m, UserRepo m, ProfileRepo m)
+type AllRepo m = ( CommentRepo m, ArticleRepo m, TagRepo m, UserRepo m
+                 , ProfileRepo m, TimeRepo m, TokenRepo m
+                 )
 
+lift3 :: (Monad m, MonadTrans t)
+      => (t3 -> t2 -> t1 -> m a) -> t3 -> t2 -> t1 -> t m a
 lift3 f a b c = lift $ f a b c
+
+lift2 :: (Monad m, MonadTrans t)
+      => (t2 -> t1 -> m a) -> t2 -> t1 -> t m a
 lift2 f a b = lift $ f a b
 
 instance (CommentRepo m) => CommentRepo (ExceptT e m) where
@@ -264,3 +278,10 @@ instance (ProfileRepo m) => ProfileRepo (ExceptT e m) where
   findProfile = lift2 findProfile
   followUserByUsername = lift2 followUserByUsername
   unfollowUserByUsername = lift2 unfollowUserByUsername
+
+instance (TimeRepo m ) => TimeRepo (ExceptT e m) where
+  currentTime = lift currentTime
+
+instance (TokenRepo m ) => TokenRepo (ExceptT e m) where
+  generateToken = lift . generateToken
+  resolveToken = lift . resolveToken

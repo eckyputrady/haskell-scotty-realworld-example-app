@@ -63,3 +63,10 @@ instance CommentRepo AppT where
   findComments = PG.findComments
   isCommentOwnedBy = PG.isCommentOwnedBy
   isCommentExist = PG.isCommentExist
+
+instance TimeRepo AppT where
+  currentTime = liftIO getCurrentTime
+
+instance TokenRepo AppT where
+  generateToken = JWT.generateToken
+  resolveToken = JWT.resolveToken

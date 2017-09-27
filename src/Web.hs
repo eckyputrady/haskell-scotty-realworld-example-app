@@ -20,10 +20,9 @@ import qualified Text.Digestive.Aeson as DF
 import Text.Digestive.Form ((.:))
 import Text.Regex
 
-import JWT
 import System.Environment
 
-type App r m = (JWT r m, AllRepo m)
+type App r m = (AllRepo m, MonadIO m)
 
 main :: (App r m) => (m Response -> IO Response) -> IO ()
 main runner = do
@@ -227,7 +226,7 @@ requireUser = do
   raiseIfError AppErrorToken $ do
     headerVal <- mayHeaderVal `orThrow` TokenErrorNotFound
     let token = toStrict $ drop 6 headerVal
-    resolveToken token
+    ExceptT $ resolveToken token
 
 optionalUser :: (App r m) => ActionT AppError m (Maybe CurrentUser)
 optionalUser = (Just <$> requireUser) `rescue` const (return Nothing)

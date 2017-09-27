@@ -34,18 +34,19 @@ acquireJWTExpirationSecs = do
 
 -- * Encode & Decode
 
-resolveToken :: (MonadError TokenError m, JWT r m) => Token -> m CurrentUser
+resolveToken :: (JWT r m) => Token -> m (Either TokenError CurrentUser)
 resolveToken token = do
   jwks <- asks getter
   eitherJwt <- decode jwks (Just $ JwsEncoding RS256) (encodeUtf8 token)
   curTime <- liftIO getPOSIXTime
-  userId <- either throwError return $ do
-    Jws (_, claimsRaw) <- first (TokenErrorMalformed . show) eitherJwt
-    jwtClaims <- first TokenErrorMalformed $ Aeson.eitherDecode $ fromStrict claimsRaw
-    let (IntDate expiredAt) = fromMaybe (IntDate curTime) $ jwtExp jwtClaims
-    when (expiredAt < curTime) $ Left TokenErrorExpired
-    maybe (Left TokenErrorUserIdNotFound) Right $ jwtSub jwtClaims >>= readMay
-  return (token, userId)
+  runExceptT $ do
+    userId <- either throwError return $ do
+      Jws (_, claimsRaw) <- first (TokenErrorMalformed . show) eitherJwt
+      jwtClaims <- first TokenErrorMalformed $ Aeson.eitherDecode $ fromStrict claimsRaw
+      let (IntDate expiredAt) = fromMaybe (IntDate curTime) $ jwtExp jwtClaims
+      when (expiredAt < curTime) $ Left TokenErrorExpired
+      maybe (Left TokenErrorUserIdNotFound) Right $ jwtSub jwtClaims >>= readMay
+    return (token, userId)
 
 generateToken :: (JWT r m) => UserId -> m Token
 generateToken userId = do

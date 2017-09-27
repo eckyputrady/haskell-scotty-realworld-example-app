@@ -3,13 +3,12 @@ module RealWorld where
 import ClassyPrelude hiding (RealWorld)
 import Struct
 import Control.Monad.Except
-import JWT
 import qualified Web.Slug as WSlug
 import Data.Convertible (convert)
 import System.Posix.Types (EpochTime)
 import Control.Lens
 
-type RW e r m = (MonadError e m, JWT r m)
+type RW e r m = (MonadError e m)
 
 orThrow :: (MonadError e m) => m (Maybe a) -> e -> m a
 orThrow action e = do
@@ -23,13 +22,13 @@ orThrowE action f = do
 
 -- * User
 
-login :: (AsUserError e, RW e r m, UserRepo m) => Auth -> m User
+login :: (AsUserError e, RW e r m, UserRepo m, TokenRepo m) => Auth -> m User
 login auth = do
   (uId, user) <- findUserByAuth auth `orThrow` review _UserErrorBadAuth auth
   token <- generateToken uId
   return $ user { userToken = token }
 
-register :: (AsUserError e, RW e r m, UserRepo m) => Register -> m User
+register :: (AsUserError e, RW e r m, UserRepo m, TokenRepo m) => Register -> m User
 register param@(Register _ email pass) = do
   let defaultImgUrl = "https://static.productionready.io/images/smiley-cyrus.jpg"
   addUser param defaultImgUrl `orThrowE` id
@@ -82,13 +81,13 @@ getArticle mayCurUser slug = do
     [article] -> return article
     _ -> throwError $ review _ArticleErrorNotFound slug
 
-createArticle :: (AsArticleError e, RW e r m, ArticleRepo m) => CurrentUser -> CreateArticle -> m Article
+createArticle :: (AsArticleError e, RW e r m, ArticleRepo m, TimeRepo m) => CurrentUser -> CreateArticle -> m Article
 createArticle curUser@(_, curUserId) param = do
   slug <- genSlug' (createArticleTitle param) curUserId
   addArticle curUserId param slug
   getArticle (Just curUser) slug
  
-updateArticle :: (AsArticleError e, RW e r m, ArticleRepo m) => CurrentUser -> Slug -> UpdateArticle -> m Article
+updateArticle :: (AsArticleError e, RW e r m, ArticleRepo m, TimeRepo m) => CurrentUser -> Slug -> UpdateArticle -> m Article
 updateArticle curUser slug param = do
   validateArticleOwnedBy (snd curUser) slug
   newSlug <- case updateArticleTitle param of
@@ -97,9 +96,9 @@ updateArticle curUser slug param = do
   updateArticleBySlug slug param newSlug
   getArticle (Just curUser) newSlug
 
-genSlug' :: (MonadIO m) => Text -> Integer -> m Text
+genSlug' :: (TimeRepo m) => Text -> Integer -> m Text
 genSlug' title uId = do
-  createdAt <- liftIO getCurrentTime
+  createdAt <- currentTime
   return $ genSlug title uId $ convert createdAt
 
 genSlug :: Text -> Integer -> EpochTime -> Text
