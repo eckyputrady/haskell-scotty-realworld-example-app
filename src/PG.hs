@@ -324,8 +324,8 @@ isCommentOwnedBy uId cId = do
     qry = "select true from comments where author_id = ? and id = ? limit 1"
     arg = (uId, cId)
   
-delCommentFromSlug :: PG r m => Slug -> CommentId -> m ()
-delCommentFromSlug slug cId = do
+delCommentById :: PG r m => CommentId -> m ()
+delCommentById cId = do
   conn <- asks getter
   void . liftIO $ execute conn qry (Only cId)
   where

@@ -146,7 +146,7 @@ delComment (_, curUserId) slug cId = do
   validateArticleExists slug
   validateCommentExists cId
   validateCommentOwnedBy curUserId cId
-  delCommentFromSlug slug cId
+  delCommentById cId
 
 getComments :: (MonadError CommentError m, CommentRepo m, ArticleRepo m) => Maybe CurrentUser -> Slug -> m [Comment]
 getComments mayCurUser slug = getComments' mayCurUser slug Nothing

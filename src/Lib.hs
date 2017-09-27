@@ -59,7 +59,7 @@ instance TagRepo AppT where
 
 instance CommentRepo AppT where
   addCommentToSlug = PG.addCommentToSlug
-  delCommentFromSlug = PG.delCommentFromSlug
+  delCommentById = PG.delCommentById
   findComments = PG.findComments
   isCommentOwnedBy = PG.isCommentOwnedBy
   isCommentExist = PG.isCommentExist

@@ -175,7 +175,7 @@ data CommentError
 
 class (Monad m) => CommentRepo m where
   addCommentToSlug :: UserId -> Slug -> Text -> m CommentId
-  delCommentFromSlug :: Slug -> CommentId -> m ()
+  delCommentById :: CommentId -> m ()
   findComments :: Maybe UserId -> Slug -> Maybe CommentId -> m [Comment]
   isCommentOwnedBy :: UserId -> CommentId -> m Bool
   isCommentExist :: CommentId -> m Bool
@@ -241,7 +241,7 @@ lift2 f a b = lift $ f a b
 
 instance (CommentRepo m) => CommentRepo (ExceptT e m) where
   addCommentToSlug = lift3 addCommentToSlug
-  delCommentFromSlug = lift2 delCommentFromSlug
+  delCommentById = lift . delCommentById
   findComments = lift3 findComments
   isCommentOwnedBy = lift2 isCommentOwnedBy
   isCommentExist = lift . isCommentExist
