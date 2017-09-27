@@ -2,6 +2,7 @@ module Struct where
 
 import ClassyPrelude
 import Data.Aeson.TH
+import Control.Monad.Except
 
 
 -- * Misc
@@ -73,6 +74,21 @@ data TokenError
   | TokenErrorMalformed String
   deriving (Eq, Show)
 
+class (Monad m) => UserRepo m where
+  findUserByAuth :: Auth -> m (Maybe (UserId, User))
+  findUserById :: UserId -> m (Maybe User)
+  addUser :: Register -> Text -> m (Either UserError ())
+  updateUserById :: UserId -> UpdateUser -> m (Either UserError ())
+
+class (Monad m) => ProfileRepo m where
+  findProfile :: Maybe UserId -> Username -> m (Maybe Profile)
+  followUserByUsername :: UserId -> Username -> m (Either UserError ())
+  unfollowUserByUsername :: UserId -> Username -> m ()
+
+class (Monad m) => TokenRepo m where
+  generateToken :: UserId -> m Token
+  resolveToken :: Token -> m (Either TokenError CurrentUser)
+
 
 -- * Articles
 
@@ -117,7 +133,23 @@ data ArticleError
   | ArticleErrorNotAllowed Slug
   deriving (Eq, Show)
 
+class (Monad m) => ArticleRepo m where
+  findArticles :: Maybe Slug -> Maybe Bool -> Maybe CurrentUser
+               -> ArticleFilter -> Pagination
+               -> m [Article]
+  addArticle :: UserId -> CreateArticle -> Slug -> m ()
+  updateArticleBySlug :: Slug -> UpdateArticle -> Slug -> m ()
+  deleteArticleBySlug :: Slug -> m ()
+  favoriteArticleBySlug :: UserId -> Slug -> m ()
+  unfavoriteArticleBySlug :: UserId -> Slug -> m ()
+  isArticleOwnedBy :: UserId -> Slug -> m (Maybe Bool)
+  isArticleExist :: Slug -> m Bool
 
+class (Monad m) => TimeRepo m where
+  currentTime :: m UTCTime
+  
+class (Monad m) => TagRepo m where
+  allTags :: m (Set Tag)
 
 -- * Comments
 
@@ -141,6 +173,12 @@ data CommentError
   | CommentErrorNotAllowed CommentId
   deriving (Eq, Show)
 
+class (Monad m) => CommentRepo m where
+  addCommentToSlug :: UserId -> Slug -> Text -> m CommentId
+  delCommentById :: CommentId -> m ()
+  findComments :: Maybe UserId -> Slug -> Maybe CommentId -> m [Comment]
+  isCommentOwnedBy :: UserId -> CommentId -> m Bool
+  isCommentExist :: CommentId -> m Bool
 
 
 -- * Wrappers
@@ -185,3 +223,56 @@ $(concat <$>
   , ''CreateArticle
   , ''UpdateArticle
   ])
+
+
+-- * Common instances
+
+type AllRepo m = ( CommentRepo m, ArticleRepo m, TagRepo m, UserRepo m
+                 , ProfileRepo m, TimeRepo m, TokenRepo m
+                 )
+
+lift3 :: (Monad m, MonadTrans t)
+      => (t3 -> t2 -> t1 -> m a) -> t3 -> t2 -> t1 -> t m a
+lift3 f a b c = lift $ f a b c
+
+lift2 :: (Monad m, MonadTrans t)
+      => (t2 -> t1 -> m a) -> t2 -> t1 -> t m a
+lift2 f a b = lift $ f a b
+
+instance (CommentRepo m) => CommentRepo (ExceptT e m) where
+  addCommentToSlug = lift3 addCommentToSlug
+  delCommentById = lift . delCommentById
+  findComments = lift3 findComments
+  isCommentOwnedBy = lift2 isCommentOwnedBy
+  isCommentExist = lift . isCommentExist
+
+instance (ArticleRepo m) => ArticleRepo (ExceptT e m) where
+  findArticles a b c d e = lift $ findArticles a b c d e
+  addArticle = lift3 addArticle
+  updateArticleBySlug = lift3 updateArticleBySlug
+  deleteArticleBySlug = lift . deleteArticleBySlug
+  favoriteArticleBySlug = lift2 favoriteArticleBySlug
+  unfavoriteArticleBySlug = lift2 unfavoriteArticleBySlug
+  isArticleOwnedBy = lift2 isArticleOwnedBy
+  isArticleExist = lift . isArticleExist
+  
+instance (TagRepo m) => TagRepo (ExceptT e m) where
+  allTags = lift allTags
+
+instance (UserRepo m) => UserRepo (ExceptT e m) where
+  findUserByAuth = lift . findUserByAuth
+  findUserById = lift . findUserById
+  addUser = lift2 addUser
+  updateUserById = lift2 updateUserById
+
+instance (ProfileRepo m) => ProfileRepo (ExceptT e m) where
+  findProfile = lift2 findProfile
+  followUserByUsername = lift2 followUserByUsername
+  unfollowUserByUsername = lift2 unfollowUserByUsername
+
+instance (TimeRepo m ) => TimeRepo (ExceptT e m) where
+  currentTime = lift currentTime
+
+instance (TokenRepo m ) => TokenRepo (ExceptT e m) where
+  generateToken = lift . generateToken
+  resolveToken = lift . resolveToken

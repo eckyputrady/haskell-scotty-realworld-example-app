@@ -5,9 +5,8 @@ module Web
 import ClassyPrelude hiding (delete)
 
 import Struct
-import RealWorld
+import RealWorld hiding (orThrow)
 import Control.Monad.Except
-import Crypto.Random.Types (MonadRandom, getRandomBytes)
 import Web.Scotty.Trans
 import Network.HTTP.Types.Status
 import Network.Wai (Response)
@@ -20,11 +19,9 @@ import qualified Text.Digestive.Aeson as DF
 import Text.Digestive.Form ((.:))
 import Text.Regex
 
-import PG
-import JWT
 import System.Environment
 
-type App r m = (PG r m, JWT r m)
+type App r m = (AllRepo m, MonadIO m)
 
 main :: (App r m) => (m Response -> IO Response) -> IO ()
 main runner = do
@@ -228,26 +225,17 @@ requireUser = do
   raiseIfError AppErrorToken $ do
     headerVal <- mayHeaderVal `orThrow` TokenErrorNotFound
     let token = toStrict $ drop 6 headerVal
-    resolveToken token
+    ExceptT $ resolveToken token
 
 optionalUser :: (App r m) => ActionT AppError m (Maybe CurrentUser)
 optionalUser = (Just <$> requireUser) `rescue` const (return Nothing)
 
-raiseIfError :: (Monad m, ScottyError e') => (e -> e') -> RWActionT e m a -> ActionT e' m a
+raiseIfError :: (Monad m, ScottyError e') => (e -> e') -> ExceptT e m a -> ActionT e' m a
 raiseIfError f action = do
-  result <- lift . runExceptT . unRWActionT $ action
+  result <- lift . runExceptT $ action
   case result of
     Left e -> raise $ f e
     Right a -> return a
-
--- this newtype is created so that we can create a non-orphan instance of MonadRandom
-newtype RWActionT e m a = RWActionT
-  { unRWActionT :: ExceptT e m a
-  } deriving  ( Applicative, Functor, Monad, MonadTrans
-              , MonadError e, MonadReader r, MonadIO, MonadThrow, MonadCatch)
-
-instance (MonadRandom m) => MonadRandom (RWActionT e m) where
-  getRandomBytes = lift . getRandomBytes
 
 
 -- * Errors
