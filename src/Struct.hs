@@ -2,7 +2,6 @@ module Struct where
 
 import ClassyPrelude
 import Data.Aeson.TH
-import Control.Lens.TH
 import Control.Monad.Except
 
 
@@ -68,8 +67,6 @@ data UserError
   | UserErrorEmailTaken Email
   deriving (Eq, Show)
 
-makeClassyPrisms ''UserError
-
 data TokenError
   = TokenErrorUserIdNotFound
   | TokenErrorNotFound
@@ -77,17 +74,15 @@ data TokenError
   | TokenErrorMalformed String
   deriving (Eq, Show)
 
-makeClassyPrisms ''TokenError
-
 class (Monad m) => UserRepo m where
   findUserByAuth :: Auth -> m (Maybe (UserId, User))
   findUserById :: UserId -> m (Maybe User)
-  addUser :: (AsUserError e) => Register -> Text -> m (Either e ())
-  updateUserById :: (AsUserError e) => UserId -> UpdateUser -> m (Either e ())
+  addUser :: Register -> Text -> m (Either UserError ())
+  updateUserById :: UserId -> UpdateUser -> m (Either UserError ())
 
 class (Monad m) => ProfileRepo m where
   findProfile :: Maybe UserId -> Username -> m (Maybe Profile)
-  followUserByUsername :: (AsUserError e) => UserId -> Username -> m (Either e ())
+  followUserByUsername :: UserId -> Username -> m (Either UserError ())
   unfollowUserByUsername :: UserId -> Username -> m ()
 
 class (Monad m) => TokenRepo m where
@@ -138,8 +133,6 @@ data ArticleError
   | ArticleErrorNotAllowed Slug
   deriving (Eq, Show)
 
-makeClassyPrisms ''ArticleError
-
 class (Monad m) => ArticleRepo m where
   findArticles :: Maybe Slug -> Maybe Bool -> Maybe CurrentUser
                -> ArticleFilter -> Pagination
@@ -179,8 +172,6 @@ data CommentError
   | CommentErrorSlugNotFound Slug
   | CommentErrorNotAllowed CommentId
   deriving (Eq, Show)
-
-makeClassyPrisms ''CommentError
 
 class (Monad m) => CommentRepo m where
   addCommentToSlug :: UserId -> Slug -> Text -> m CommentId

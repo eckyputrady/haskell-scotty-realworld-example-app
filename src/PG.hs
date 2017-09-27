@@ -10,8 +10,6 @@ import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.Types
 import System.Environment
 import Struct
-import Control.Monad.Except
-import Control.Lens (review)
 
 type PG r m = (MonadReader r m, Has Connection r, MonadIO m, MonadCatch m)
     
@@ -56,7 +54,7 @@ findUserById uId = do
     qry = "select cast (name as text), cast (email as text), bio, image \
           \from users where id = ? limit 1"
 
-addUser :: (AsUserError e, PG r m) => Register -> Text -> m (Either e ())
+addUser :: (PG r m) => Register -> Text -> m (Either UserError ())
 addUser (Register name email pass) defaultImgUrl = do
   conn <- asks getter
   ((Right <$>) . void . liftIO $ action conn)
@@ -66,7 +64,7 @@ addUser (Register name email pass) defaultImgUrl = do
     qry = "insert into users (name, email, pass, bio, image) \
           \values (?, ?, ?, '', ?)"
 
-updateUserById :: (AsUserError e, PG r m) => UserId -> UpdateUser -> m (Either e ())
+updateUserById :: (PG r m) => UserId -> UpdateUser -> m (Either UserError ())
 updateUserById uId (UpdateUser email uname pass img bio) = do
   conn <- asks getter
   ((Right <$>) . void . liftIO $ action conn)
@@ -81,12 +79,12 @@ updateUserById uId (UpdateUser email uname pass img bio) = do
           \bio = coalesce(?, bio) \
           \where id = ?"
 
-translateSqlUserError :: (AsUserError e) => Email -> Username -> SqlError -> e
+translateSqlUserError :: Email -> Username -> SqlError -> UserError
 translateSqlUserError email username sqlError
   | isUniqueConstraintsViolation sqlError "users_email_key" =
-      review _UserErrorEmailTaken email
+      UserErrorEmailTaken email
   | isUniqueConstraintsViolation sqlError "users_name_key" =
-      review _UserErrorNameTaken username
+      UserErrorNameTaken username
   | otherwise =
       error $ "Unknown SQL error: " <> show sqlError
 
@@ -107,11 +105,11 @@ findProfile mayUserId username = do
     qry = "select cast (name as text), bio, image, exists(select 1 from followings where user_id = id and followed_by = ?) as following \
           \from users where name = ? limit 1"
 
-followUserByUsername :: (AsUserError e, PG r m) => UserId -> Username -> m (Either e ())
+followUserByUsername :: (PG r m) => UserId -> Username -> m (Either UserError ())
 followUserByUsername uId username = do
   conn <- asks getter
   ((Right <$>) . void . liftIO $ execute conn qry (uId, username))
-    `catch` \SqlError{sqlState="23503"} -> return $ Left (review _UserErrorNotFound username)
+    `catch` \SqlError{sqlState="23503"} -> return $ Left (UserErrorNotFound username)
   where
     qry = "insert into followings (followed_by, user_id) \
           \(select ?, id from users where name = ? limit 1) on conflict do nothing"

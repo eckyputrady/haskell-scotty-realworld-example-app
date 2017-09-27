@@ -7,7 +7,6 @@ import ClassyPrelude hiding (delete)
 import Struct
 import RealWorld hiding (orThrow)
 import Control.Monad.Except
-import Crypto.Random.Types (MonadRandom, getRandomBytes)
 import Web.Scotty.Trans
 import Network.HTTP.Types.Status
 import Network.Wai (Response)
@@ -237,9 +236,6 @@ raiseIfError f action = do
   case result of
     Left e -> raise $ f e
     Right a -> return a
-
-instance (MonadRandom m) => MonadRandom (ExceptT e m) where
-  getRandomBytes = lift . getRandomBytes
 
 
 -- * Errors

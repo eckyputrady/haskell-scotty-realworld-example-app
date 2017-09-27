@@ -12,16 +12,6 @@ import qualified Jose.Jwk as JWT
 import qualified Web
 import Struct
 
-type Env = (PG.Connection, [JWT.Jwk], JWT.JWTExpirationSecs)
-
-newtype AppT a = AppT
-  { unAppT :: ReaderT Env IO a
-  } deriving  ( Applicative, Functor, Monad
-              , MonadIO, MonadThrow, MonadCatch, MonadReader Env)
-
-instance MonadRandom AppT where
-  getRandomBytes = liftIO . getRandomBytes
-
 main :: IO ()
 main = do
   -- acquire resources
@@ -32,6 +22,16 @@ main = do
   -- start the app
   let runner app = withResource pgPool $ \conn -> flip runReaderT (conn, jwks, jwtExpirationSecs) $ unAppT app
   Web.main runner
+
+type Env = (PG.Connection, [JWT.Jwk], JWT.JWTExpirationSecs)
+
+newtype AppT a = AppT
+  { unAppT :: ReaderT Env IO a
+  } deriving  ( Applicative, Functor, Monad
+              , MonadIO, MonadThrow, MonadCatch, MonadReader Env)
+
+instance MonadRandom AppT where
+  getRandomBytes = liftIO . getRandomBytes
 
 instance UserRepo AppT where
   findUserByAuth = PG.findUserByAuth
