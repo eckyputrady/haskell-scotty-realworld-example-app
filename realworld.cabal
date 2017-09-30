@@ -27,16 +27,12 @@ library
                      , scotty
                      , postgresql-simple
                      , postgresql-simple-migration
-                     , uuid
-                     , string-random
                      , data-has
                      , aeson
                      , time
                      , mtl
-                     , monad-control
                      , regex-compat
                      , http-types
-                     , monad-logger
                      , resource-pool
                      , warp-tls
                      , warp
@@ -48,6 +44,7 @@ library
                      , cryptonite
                      , slug
                      , convertible
+                     , wai-cors
                      -- client
                      , wreq
                      , http-client

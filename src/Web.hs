@@ -18,6 +18,7 @@ import qualified Text.Digestive.Types as DF
 import qualified Text.Digestive.Aeson as DF
 import Text.Digestive.Form ((.:))
 import Text.Regex
+import Network.Wai.Middleware.Cors
 
 import System.Environment
 
@@ -50,6 +51,14 @@ main runner = do
 
 routes :: (App r m) => ScottyT AppError m ()
 routes = do
+  -- middlewares
+
+  middleware $ cors $ const $ Just simpleCorsResourcePolicy
+    { corsRequestHeaders = "Authorization":simpleHeaders
+    , corsMethods = "PUT":"DELETE":simpleMethods
+    }
+  options "*" $ return ()
+
   -- err 
   
   defaultHandler errHandler
