@@ -1,10 +1,10 @@
 create extension citext;
-create extension chkpass;
+create extension pgcrypto;
 
 create table users (
   id bigserial primary key not null,
   name citext not null unique,
-  pass chkpass not null,
+  pass text not null,
   email citext not null unique,
   image text not null,
   bio text not null

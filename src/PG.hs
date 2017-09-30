@@ -39,7 +39,8 @@ findUserByAuth (Auth email pass) = do
       return Nothing
   where
     qry = "select id, cast (name as text), bio, image \
-          \from users where email = ? AND pass = ? limit 1"
+          \from users where email = ? AND pass = crypt(?, pass) \
+          \limit 1"
 
 findUserById :: PG r m => UserId -> m (Maybe User)
 findUserById uId = do
@@ -62,7 +63,7 @@ addUser (Register name email pass) defaultImgUrl = do
   where
     action conn = execute conn qry (name, email, pass, defaultImgUrl)
     qry = "insert into users (name, email, pass, bio, image) \
-          \values (?, ?, ?, '', ?)"
+          \values (?, ?, crypt(?, gen_salt('bf')), '', ?)"
 
 updateUserById :: (PG r m) => UserId -> UpdateUser -> m (Either UserError ())
 updateUserById uId (UpdateUser email uname pass img bio) = do
