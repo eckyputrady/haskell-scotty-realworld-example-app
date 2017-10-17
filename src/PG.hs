@@ -10,6 +10,7 @@ import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.Types
 import System.Environment
 import Struct
+import Control.Monad.Except
 
 type PG r m = (MonadReader r m, Has Connection r, MonadIO m, MonadCatch m)
     
@@ -55,21 +56,21 @@ findUserById uId = do
     qry = "select cast (name as text), cast (email as text), bio, image \
           \from users where id = ? limit 1"
 
-addUser :: (PG r m) => Register -> Text -> m (Either UserError ())
+addUser :: (PG r m) => Register -> Text -> ExceptT UserError m ()
 addUser (Register name email pass) defaultImgUrl = do
   conn <- asks getter
-  ((Right <$>) . void . liftIO $ action conn)
-    `catch` (return . Left . translateSqlUserError email name)
+  (void . liftIO $ action conn)
+    `catch` (throwError . translateSqlUserError email name)
   where
     action conn = execute conn qry (name, email, pass, defaultImgUrl)
     qry = "insert into users (name, email, pass, bio, image) \
           \values (?, ?, crypt(?, gen_salt('bf')), '', ?)"
 
-updateUserById :: (PG r m) => UserId -> UpdateUser -> m (Either UserError ())
+updateUserById :: (PG r m) => UserId -> UpdateUser -> ExceptT UserError m ()
 updateUserById uId (UpdateUser email uname pass img bio) = do
   conn <- asks getter
-  ((Right <$>) . void . liftIO $ action conn)
-    `catch` (return . Left . translateSqlUserError (fromMaybe "" email) (fromMaybe "" uname))
+  (void . liftIO $ action conn)
+    `catch` (throwError . translateSqlUserError (fromMaybe "" email) (fromMaybe "" uname))
   where
     action conn = execute conn qry (email, uname, pass, img, bio, uId)
     qry = "update users set \
@@ -106,11 +107,11 @@ findProfile mayUserId username = do
     qry = "select cast (name as text), bio, image, exists(select 1 from followings where user_id = id and followed_by = ?) as following \
           \from users where name = ? limit 1"
 
-followUserByUsername :: (PG r m) => UserId -> Username -> m (Either UserError ())
+followUserByUsername :: (PG r m) => UserId -> Username -> ExceptT UserError m ()
 followUserByUsername uId username = do
   conn <- asks getter
-  ((Right <$>) . void . liftIO $ execute conn qry (uId, username))
-    `catch` \SqlError{sqlState="23503"} -> return $ Left (UserErrorNotFound username)
+  (void . liftIO $ execute conn qry (uId, username))
+    `catch` \SqlError{sqlState="23503"} -> throwError $ UserErrorNotFound username
   where
     qry = "insert into followings (followed_by, user_id) \
           \(select ?, id from users where name = ? limit 1) on conflict do nothing"

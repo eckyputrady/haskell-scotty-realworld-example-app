@@ -115,13 +115,13 @@ routes = do
     curUser <- optionalUser
     pagination <- parsePagination
     articleFilter <- parseArticleFilter
-    result <- raiseIfError AppErrorArticle $ getArticles curUser articleFilter pagination
+    result <- raiseIfError AppErrorArticle $ lift $ getArticles curUser articleFilter pagination
     json $ ArticlesWrapper result (length result)
 
   get "/api/articles/feed" $ do
     curUser <- requireUser
     pagination <- parsePagination
-    result <- raiseIfError AppErrorArticle $ getFeed curUser pagination
+    result <- raiseIfError AppErrorArticle $ lift $ getFeed curUser pagination
     json $ ArticlesWrapper result (length result)
 
   get "/api/articles/:slug" $ do
@@ -191,7 +191,7 @@ routes = do
   -- tags
 
   get "/api/tags" $ do
-    result <- raiseIfError AppErrorUnknown getTags
+    result <- raiseIfError AppErrorUnknown $ lift getTags
     json $ TagsWrapper result
 
   
@@ -234,7 +234,7 @@ requireUser = do
   raiseIfError AppErrorToken $ do
     headerVal <- mayHeaderVal `orThrow` TokenErrorNotFound
     let token = toStrict $ drop 6 headerVal
-    ExceptT $ resolveToken token
+    resolveToken token
 
 optionalUser :: (App r m) => ActionT AppError m (Maybe CurrentUser)
 optionalUser = (Just <$> requireUser) `rescue` const (return Nothing)
