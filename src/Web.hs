@@ -57,7 +57,7 @@ routes = do
     { corsRequestHeaders = "Authorization":simpleHeaders
     , corsMethods = "PUT":"DELETE":simpleMethods
     }
-  options "*" $ return ()
+  options (regex ".*") $ return ()
 
   -- err 
   
