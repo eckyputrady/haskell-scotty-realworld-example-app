@@ -1,9 +1,9 @@
 module Spec.Article (spec) where
 
 import ClassyPrelude
-import Struct
 import Test.Hspec
-import qualified RealWorldClient as RW
+import Core.Types
+import qualified Adapter.HTTP.Client as RW
 import Text.StringRandom
 
 import Spec.Common

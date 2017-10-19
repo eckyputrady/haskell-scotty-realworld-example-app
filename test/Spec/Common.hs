@@ -2,8 +2,8 @@ module Spec.Common where
     
 import ClassyPrelude
 import Control.Monad.Except hiding (forM_)
-import Struct
-import qualified RealWorldClient as RW
+import Core.Types
+import qualified Adapter.HTTP.Client as RW
 import Text.StringRandom
 
 randomRegisterParam :: IO Register

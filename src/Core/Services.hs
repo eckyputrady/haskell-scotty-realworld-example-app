@@ -1,7 +1,7 @@
-module RealWorld where
+module Core.Services where
 
 import ClassyPrelude hiding (RealWorld)
-import Struct
+import Core.Types
 import Control.Monad.Except
 import qualified Web.Slug as WSlug
 import Data.Convertible (convert)

@@ -1,4 +1,4 @@
-module PG where
+module Adapter.PG where
 
 import ClassyPrelude
 import Data.Has
@@ -9,7 +9,7 @@ import Database.PostgreSQL.Simple.FromRow
 import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.Types
 import System.Environment
-import Struct
+import Core.Types
 import Control.Monad.Except
 
 type PG r m = (MonadReader r m, Has Connection r, MonadIO m, MonadCatch m)

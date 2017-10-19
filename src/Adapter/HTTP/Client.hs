@@ -1,7 +1,7 @@
-module RealWorldClient where
+module Adapter.HTTP.Client where
 
 import ClassyPrelude
-import Struct
+import Core.Types
 import Network.Wreq hiding (Auth)
 import Control.Monad.Except
 import Control.Lens hiding ((.=))

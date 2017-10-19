@@ -16,12 +16,12 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Lib
-                     , RealWorldClient
-                     , Struct
-  other-modules:       RealWorld
-                     , JWT
-                     , PG
-                     , Web
+                     , Adapter.HTTP.Client
+                     , Core.Types
+  other-modules:       Core.Services
+                     , Adapter.JWT
+                     , Adapter.PG
+                     , Adapter.HTTP.API
   build-depends:       base
                      , classy-prelude
                      , scotty

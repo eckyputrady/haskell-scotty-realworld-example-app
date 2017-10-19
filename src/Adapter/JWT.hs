@@ -1,4 +1,4 @@
-module JWT where
+module Adapter.JWT where
   
 import ClassyPrelude
 import Data.Has
@@ -8,7 +8,7 @@ import Jose.Jwa
 import Crypto.Random.Types (MonadRandom)
 import System.Environment
 import qualified Data.Aeson as Aeson
-import Struct
+import Core.Types
 import Control.Monad.Except
 import Data.Time.Clock.POSIX (getPOSIXTime)
 

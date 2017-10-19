@@ -1,11 +1,11 @@
-module Web
+module Adapter.HTTP.API
        ( main
        ) where
 
 import ClassyPrelude hiding (delete)
 
-import Struct
-import RealWorld hiding (orThrow)
+import Core.Types
+import Core.Services hiding (orThrow)
 import Control.Monad.Except
 import Web.Scotty.Trans
 import Network.HTTP.Types.Status

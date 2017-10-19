@@ -5,12 +5,12 @@ module Lib
 import ClassyPrelude
 import Crypto.Random.Types (MonadRandom, getRandomBytes)
 import Data.Pool
-import qualified PG
+import qualified Adapter.PG as PG
 import qualified Database.PostgreSQL.Simple as PG
-import qualified JWT
+import qualified Adapter.JWT as JWT
 import qualified Jose.Jwk as JWT
-import qualified Web
-import Struct
+import qualified Adapter.HTTP.API as API
+import Core.Types
 
 main :: IO ()
 main = do
@@ -21,7 +21,7 @@ main = do
   jwtExpirationSecs <- JWT.acquireJWTExpirationSecs
   -- start the app
   let runner app = withResource pgPool $ \conn -> flip runReaderT (conn, jwks, jwtExpirationSecs) $ unAppT app
-  Web.main runner
+  API.main runner
 
 type Env = (PG.Connection, [JWT.Jwk], JWT.JWTExpirationSecs)
 

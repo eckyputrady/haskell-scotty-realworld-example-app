@@ -2,7 +2,7 @@ import ClassyPrelude
 import Test.Hspec
 import System.Environment
 import Database.PostgreSQL.Simple
-import qualified RealWorldClient as RW
+import qualified Adapter.HTTP.Client as RW
 import qualified Lib
 
 import Spec.Common

@@ -1,4 +1,4 @@
-module Struct where
+module Core.Types where
 
 import ClassyPrelude
 import Data.Aeson.TH
