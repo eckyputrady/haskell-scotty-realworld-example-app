@@ -35,14 +35,14 @@ before_install:
 - mkdir -p ~/.local/bin
 - export PATH=$HOME/.local/bin:$PATH
 - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-- stack install weeder hlint
 
 install:
 # Build dependencies
-- stack --no-terminal --install-ghc test --only-dependencies
+- stack --install-ghc test --only-dependencies
+- stack install weeder hlint
 
 script:
 # Build the package, its tests, and its code coverage reposrt
-- stack build --no-terminal --test --coverage
+- stack build --test --coverage
 - hlint .
 - weeder .
