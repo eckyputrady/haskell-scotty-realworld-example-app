@@ -19,6 +19,7 @@ import qualified Text.Digestive.Aeson as DF
 import Text.Digestive.Form ((.:))
 import Text.Regex
 import Network.Wai.Middleware.Cors
+import Data.Aeson (ToJSON)
 
 import System.Environment
 
@@ -49,7 +50,7 @@ main runner = do
 
 -- * Routing
 
-routes :: (App r m) => ScottyT AppError m ()
+routes :: (App r m) => ScottyT LText m ()
 routes = do
   -- middlewares
 
@@ -61,30 +62,29 @@ routes = do
 
   -- err 
   
-  defaultHandler errHandler
-
+  defaultHandler unknownErrorHandler
 
   -- users
 
   post "/api/users/login" $ do
     req <- parseJsonBody ("user" .: authForm)
-    result <- raiseIfError AppErrorUser $ login req
+    result <- stopIfError userErrorHandler $ login req
     json $ UserWrapper result
 
   post "/api/users" $ do
     req <- parseJsonBody ("user" .: registerForm)
-    result <- raiseIfError AppErrorUser $ register req
+    result <- stopIfError userErrorHandler $ register req
     json $ UserWrapper result
 
   get "/api/user" $ do
     curUser <- requireUser
-    result <- raiseIfError AppErrorUser $ getUser curUser
+    result <- stopIfError userErrorHandler $ getUser curUser
     json $ UserWrapper result
 
   put "/api/user" $ do
     curUser <- requireUser
     req <- parseJsonBody ("user" .: updateUserForm)
-    result <- raiseIfError AppErrorUser $ updateUser curUser req
+    result <- stopIfError userErrorHandler $ updateUser curUser req
     json $ UserWrapper result
 
 
@@ -93,19 +93,19 @@ routes = do
   get "/api/profiles/:username" $ do
     curUser <- optionalUser
     username <- param "username"
-    result <- raiseIfError AppErrorUser $ getProfile curUser username
+    result <- stopIfError userErrorHandler $ getProfile curUser username
     json $ ProfileWrapper result
 
   post "/api/profiles/:username/follow" $ do
     curUser <- requireUser
     username <- param "username"
-    result <- raiseIfError AppErrorUser $ followUser curUser username
+    result <- stopIfError userErrorHandler $ followUser curUser username
     json $ ProfileWrapper result
 
   delete "/api/profiles/:username/follow" $ do
     curUser <- requireUser
     username <- param "username"
-    result <- raiseIfError AppErrorUser $ unfollowUser curUser username
+    result <- stopIfError userErrorHandler $ unfollowUser curUser username
     json $ ProfileWrapper result
 
 
@@ -127,26 +127,26 @@ routes = do
   get "/api/articles/:slug" $ do
     curUser <- optionalUser
     slug <- param "slug"
-    result <- raiseIfError AppErrorArticle $ getArticle curUser slug
+    result <- stopIfError articleErrorHandler $ getArticle curUser slug
     json $ ArticleWrapper result
 
   post "/api/articles" $ do
     curUser <- requireUser
     req <- parseJsonBody ("article" .: createArticleForm)
-    result <- raiseIfError AppErrorArticle $ createArticle curUser req
+    result <- stopIfError articleErrorHandler $ createArticle curUser req
     json $ ArticleWrapper result
 
   put "/api/articles/:slug" $ do
     curUser <- requireUser
     slug <- param "slug"
     req <- parseJsonBody ("article" .: updateArticleForm)
-    result <- raiseIfError AppErrorArticle $ updateArticle curUser slug req
+    result <- stopIfError articleErrorHandler $ updateArticle curUser slug req
     json $ ArticleWrapper result
 
   delete "/api/articles/:slug" $ do
     curUser <- requireUser
     slug <- param "slug"
-    raiseIfError AppErrorArticle $ deleteArticle curUser slug
+    stopIfError articleErrorHandler $ deleteArticle curUser slug
     json $ asText ""
 
 
@@ -155,13 +155,13 @@ routes = do
   post "/api/articles/:slug/favorite" $ do
     curUser <- requireUser
     slug <- param "slug"
-    result <- raiseIfError AppErrorArticle $ favoriteArticle curUser slug
+    result <- stopIfError articleErrorHandler $ favoriteArticle curUser slug
     json $ ArticleWrapper result
 
   delete "/api/articles/:slug/favorite" $ do
     curUser <- requireUser
     slug <- param "slug"
-    result <- raiseIfError AppErrorArticle $ unfavoriteArticle curUser slug
+    result <- stopIfError articleErrorHandler $ unfavoriteArticle curUser slug
     json $ ArticleWrapper result
 
 
@@ -171,20 +171,20 @@ routes = do
     curUser <- requireUser
     slug <- param "slug"
     req <- parseJsonBody ("comment" .: "body" .: DF.text Nothing)
-    result <- raiseIfError AppErrorComment $ addComment curUser slug req
+    result <- stopIfError commentErrorHandler $ addComment curUser slug req
     json $ CommentWrapper result
 
   delete "/api/articles/:slug/comments/:id" $ do
     curUser <- requireUser
     slug <- param "slug"
     cId <- param "id"
-    raiseIfError AppErrorComment $ delComment curUser slug cId
+    stopIfError commentErrorHandler $ delComment curUser slug cId
     json $ asText ""
   
   get "/api/articles/:slug/comments" $ do
     curUser <- optionalUser
     slug <- param "slug"
-    result <- raiseIfError AppErrorComment $ getComments curUser slug
+    result <- stopIfError commentErrorHandler $ getComments curUser slug
     json $ CommentsWrapper result
   
 
@@ -215,95 +215,102 @@ mayParam name = (Just <$> param name) `rescue` const (return Nothing)
 parseArticleFilter :: (ScottyError e, Monad m) => ActionT e m ArticleFilter
 parseArticleFilter = ArticleFilter <$> mayParam "tag" <*> mayParam "author" <*> mayParam "favorited"
 
-parseJsonBody :: (MonadIO m) => DF.Form [Text] m a -> ActionT AppError m a
+parseJsonBody :: (MonadIO m) => DF.Form [Text] m a -> ActionT LText m a
 parseJsonBody form = do
-  val <- jsonData `rescue` const (raise AppErrorInputMalformedJson)
+  val <- jsonData `rescue` inputMalformedJSONErrorHandler
   (v, result) <- lift $ DF.digestJSON form val
   case result of
-    Nothing -> raise $ AppErrorInput v
+    Nothing -> inputErrorHandler v
     Just x -> return x
 
-requireUser :: (App r m) => ActionT AppError m CurrentUser
-requireUser = do
+getCurrentUser :: (App r m) => ActionT LText m (Either TokenError CurrentUser)
+getCurrentUser = do
   mayHeaderVal <- header "Authorization"
-  raiseIfError AppErrorToken $ runExceptT $ do
+  runExceptT $ do
     headerVal <- ExceptT $ pure mayHeaderVal `orThrow` TokenErrorNotFound
     let token = toStrict $ drop 6 headerVal
-    ExceptT $ resolveToken token
+    ExceptT $ lift $ resolveToken token
 
-optionalUser :: (App r m) => ActionT AppError m (Maybe CurrentUser)
-optionalUser = (Just <$> requireUser) `rescue` const (return Nothing)
+requireUser :: (App r m) => ActionT LText m CurrentUser
+requireUser = do
+  result <- getCurrentUser
+  stopIfError tokenErrorHandler (pure result)
 
-raiseIfError :: (Monad m, ScottyError e') => (e -> e') -> m (Either e a) -> ActionT e' m a
-raiseIfError f action = do
+optionalUser :: (App r m) => ActionT LText m (Maybe CurrentUser)
+optionalUser =
+  either (const Nothing) Just <$> getCurrentUser
+
+stopIfError :: (Monad m, ScottyError e') => (e -> ActionT e' m ()) -> m (Either e a) -> ActionT e' m a
+stopIfError errHandler action = do
   result <- lift action
   case result of
-    Left e -> raise $ f e
-    Right a -> return a
+    Left e -> do 
+      errHandler e
+      finish
+    Right a ->
+      return a
 
 
 -- * Errors
 
-data AppError
-  = AppErrorToken TokenError
-  | AppErrorUser UserError
-  | AppErrorArticle ArticleError
-  | AppErrorComment CommentError
-  | AppErrorInput (DF.View [Text])
-  | AppErrorInputMalformedJson
-  | AppErrorUnknown String
-  deriving (Show)
+inputErrorHandler :: (ScottyError e, Monad m) => DF.View [Text] -> ActionT e m a
+inputErrorHandler v = do
+  let errs = mapFromList $ map (first (intercalate "." . drop 1)) $ DF.viewErrors v :: InputViolations
+  status status422
+  json $ ErrorsWrapper errs
+  finish
 
-errHandler :: Monad m => AppError -> ActionT AppError m ()
-errHandler e = case e of
-  AppErrorInput v -> do
-    let errs = mapFromList $ map (first (intercalate "." . drop 1)) $ DF.viewErrors v :: InputViolations
-    status status422
-    json $ ErrorsWrapper errs
-  AppErrorToken v -> do
-    status status401
-    json v
-  AppErrorUser err -> case err of
-    UserErrorBadAuth _ -> do
-      status status400
-      json err
-    UserErrorNotFound _ -> do
-      status status404
-      json err
-    UserErrorNameTaken _ -> do
-      status status400
-      json err
-    UserErrorEmailTaken _ -> do
-      status status400
-      json err
-  AppErrorArticle err -> case err of
-    ArticleErrorNotFound _ -> do
-      status status404
-      json err
-    ArticleErrorNotAllowed _ -> do
-      status status403
-      json err
-  AppErrorComment err -> case err of
-    CommentErrorNotFound _ -> do
-      status status404
-      json err
-    CommentErrorSlugNotFound _ -> do
-      status status404
-      json err
-    CommentErrorNotAllowed _ -> do
-      status status403
-      json err
-  AppErrorInputMalformedJson -> do
-    status status422
-    json $ ErrorsWrapper $ asText "Malformed JSON payload"
-  AppErrorUnknown str -> do
-    status status500
-    json str
+inputMalformedJSONErrorHandler :: (ScottyError e, Monad m) => err -> ActionT e m a
+inputMalformedJSONErrorHandler _ = do
+  status status422
+  json $ ErrorsWrapper $ asText "Malformed JSON payload"
+  finish
 
-instance ScottyError AppError where
-  showError = fromString . show
-  stringError = AppErrorUnknown
+tokenErrorHandler :: (ScottyError e, Monad m) => TokenError -> ActionT e m ()
+tokenErrorHandler e = do
+  status status401
+  json e
 
+userErrorHandler :: (ScottyError e, Monad m) => UserError -> ActionT e m ()
+userErrorHandler err = case err of
+  UserErrorBadAuth _ -> do
+    status status400
+    json err
+  UserErrorNotFound _ -> do
+    status status404
+    json err
+  UserErrorNameTaken _ -> do
+    status status400
+    json err
+  UserErrorEmailTaken _ -> do
+    status status400
+    json err
+
+articleErrorHandler :: (ScottyError e, Monad m) => ArticleError -> ActionT e m ()
+articleErrorHandler err = case err of
+  ArticleErrorNotFound _ -> do
+    status status404
+    json err
+  ArticleErrorNotAllowed _ -> do
+    status status403
+    json err
+
+commentErrorHandler :: (ScottyError e, Monad m) => CommentError -> ActionT e m ()
+commentErrorHandler err = case err of
+  CommentErrorNotFound _ -> do
+    status status404
+    json err
+  CommentErrorSlugNotFound _ -> do
+    status status404
+    json err
+  CommentErrorNotAllowed _ -> do
+    status status403
+    json err
+
+unknownErrorHandler :: (ScottyError e, Monad m, ToJSON err) => err -> ActionT e m ()
+unknownErrorHandler str = do
+  status status500
+  json str
 
 
 -- * Request deserialization & validation
