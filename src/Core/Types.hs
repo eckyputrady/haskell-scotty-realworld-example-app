@@ -2,7 +2,6 @@ module Core.Types where
 
 import ClassyPrelude
 import Data.Aeson.TH
-import Control.Monad.Except
 
 
 -- * Misc
@@ -77,17 +76,17 @@ data TokenError
 class (Monad m) => UserRepo m where
   findUserByAuth :: Auth -> m (Maybe (UserId, User))
   findUserById :: UserId -> m (Maybe User)
-  addUser :: Register -> Text -> ExceptT UserError m ()
-  updateUserById :: UserId -> UpdateUser -> ExceptT UserError m ()
+  addUser :: Register -> Text -> m (Either UserError ())
+  updateUserById :: UserId -> UpdateUser -> m (Either UserError ())
 
 class (Monad m) => ProfileRepo m where
   findProfile :: Maybe UserId -> Username -> m (Maybe Profile)
-  followUserByUsername :: UserId -> Username -> ExceptT UserError m ()
+  followUserByUsername :: UserId -> Username -> m (Either UserError ())
   unfollowUserByUsername :: UserId -> Username -> m ()
 
 class (Monad m) => TokenRepo m where
   generateToken :: UserId -> m Token
-  resolveToken :: Token -> ExceptT TokenError m CurrentUser
+  resolveToken :: Token -> m (Either TokenError CurrentUser)
 
 
 -- * Articles

@@ -1,7 +1,6 @@
 module Spec.Common where
     
 import ClassyPrelude
-import Control.Monad.Except hiding (forM_)
 import Core.Types
 import qualified Adapter.HTTP.Client as RW
 import Text.StringRandom
@@ -34,5 +33,5 @@ createRandomArticle user tags = do
   param <- randomCreateArticleParam tags
   runClient (RW.createArticle token param)
 
-runClient :: ExceptT e (ReaderT RW.RWBaseUrl m) a -> m (Either e a)
-runClient = flip runReaderT (RW.RWBaseUrl "http://127.0.0.1:3000/api") . runExceptT
+runClient :: ReaderT RW.RWBaseUrl m a -> m a
+runClient = flip runReaderT (RW.RWBaseUrl "http://127.0.0.1:3000/api")

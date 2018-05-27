@@ -34,8 +34,8 @@ acquireJWTExpirationSecs = do
 
 -- * Encode & Decode
 
-resolveToken :: (JWT r m) => Token -> ExceptT TokenError m CurrentUser
-resolveToken token = do
+resolveToken :: (JWT r m) => Token -> m (Either TokenError CurrentUser)
+resolveToken token = runExceptT $ do
   jwks <- asks getter
   eitherJwt <- lift $ decode jwks (Just $ JwsEncoding RS256) (encodeUtf8 token)
   curTime <- liftIO getPOSIXTime

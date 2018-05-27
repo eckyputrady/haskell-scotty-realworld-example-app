@@ -7,7 +7,7 @@ license:             BSD3
 license-file:        LICENSE
 author:              Ecky Putrady
 maintainer:          eckyputrady@gmail.com
-copyright:           2017 Ecky Putrady
+copyright:           2018 Ecky Putrady
 category:            Web
 build-type:          Simple
 extra-source-files:  README.md
@@ -74,9 +74,8 @@ executable realworld-exe
 test-suite realworld-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
-  main-is:             Spec.hs
-  other-modules:       Spec
-                     , Spec.Common
+  main-is:             Main.hs
+  other-modules:       Spec.Common
                      , Spec.User
                      , Spec.Article
                      , Spec.Comment

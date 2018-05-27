@@ -28,7 +28,7 @@ type Env = (PG.Connection, [JWT.Jwk], JWT.JWTExpirationSecs)
 newtype AppT a = AppT
   { unAppT :: ReaderT Env IO a
   } deriving  ( Applicative, Functor, Monad
-              , MonadIO, MonadThrow, MonadCatch, MonadReader Env)
+              , MonadIO, MonadUnliftIO, MonadReader Env)
 
 instance MonadRandom AppT where
   getRandomBytes = liftIO . getRandomBytes

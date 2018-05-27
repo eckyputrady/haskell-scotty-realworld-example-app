@@ -5,7 +5,7 @@ module Adapter.HTTP.API
 import ClassyPrelude hiding (delete)
 
 import Core.Types
-import Core.Services hiding (orThrow)
+import Core.Services
 import Control.Monad.Except
 import Web.Scotty.Trans
 import Network.HTTP.Types.Status
@@ -115,13 +115,13 @@ routes = do
     curUser <- optionalUser
     pagination <- parsePagination
     articleFilter <- parseArticleFilter
-    result <- raiseIfError AppErrorArticle $ lift $ getArticles curUser articleFilter pagination
+    result <- lift $ getArticles curUser articleFilter pagination
     json $ ArticlesWrapper result (length result)
 
   get "/api/articles/feed" $ do
     curUser <- requireUser
     pagination <- parsePagination
-    result <- raiseIfError AppErrorArticle $ lift $ getFeed curUser pagination
+    result <- lift $ getFeed curUser pagination
     json $ ArticlesWrapper result (length result)
 
   get "/api/articles/:slug" $ do
@@ -191,7 +191,7 @@ routes = do
   -- tags
 
   get "/api/tags" $ do
-    result <- raiseIfError AppErrorUnknown $ lift getTags
+    result <- lift getTags
     json $ TagsWrapper result
 
   
@@ -202,11 +202,6 @@ routes = do
 
 
 -- * Utils
-
-orThrow :: MonadError e m => Maybe a -> e -> m a
-orThrow m e = case m of
-  Nothing -> throwError e
-  Just a -> return a
   
 parsePagination :: (ScottyError e, Monad m) => ActionT e m Pagination
 parsePagination = do
@@ -231,17 +226,17 @@ parseJsonBody form = do
 requireUser :: (App r m) => ActionT AppError m CurrentUser
 requireUser = do
   mayHeaderVal <- header "Authorization"
-  raiseIfError AppErrorToken $ do
-    headerVal <- mayHeaderVal `orThrow` TokenErrorNotFound
+  raiseIfError AppErrorToken $ runExceptT $ do
+    headerVal <- ExceptT $ pure mayHeaderVal `orThrow` TokenErrorNotFound
     let token = toStrict $ drop 6 headerVal
-    resolveToken token
+    ExceptT $ resolveToken token
 
 optionalUser :: (App r m) => ActionT AppError m (Maybe CurrentUser)
 optionalUser = (Just <$> requireUser) `rescue` const (return Nothing)
 
-raiseIfError :: (Monad m, ScottyError e') => (e -> e') -> ExceptT e m a -> ActionT e' m a
+raiseIfError :: (Monad m, ScottyError e') => (e -> e') -> m (Either e a) -> ActionT e' m a
 raiseIfError f action = do
-  result <- lift . runExceptT $ action
+  result <- lift action
   case result of
     Left e -> raise $ f e
     Right a -> return a
