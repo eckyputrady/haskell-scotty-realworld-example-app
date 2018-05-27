@@ -111,7 +111,7 @@ followUserByUsername uId username = do
   conn <- asks getter
   result <- try . liftIO $ execute conn qry (uId, username)
   return $ case result of
-    Left (SqlError{sqlState="23503"}) ->
+    Left SqlError{sqlState="23503"} ->
       Left $ UserErrorNotFound username
     Left err ->
       error $ "Unhandled PG error: " <> show err

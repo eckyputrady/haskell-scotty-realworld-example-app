@@ -43,6 +43,6 @@ install:
 
 script:
 # Build the package, its tests, and its code coverage reposrt
-- stack --no-terminal test --coverage
+- stack build --no-terminal --test --coverage
 - hlint .
 - weeder .

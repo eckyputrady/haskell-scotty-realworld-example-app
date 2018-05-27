@@ -8,9 +8,8 @@ import Data.Convertible (convert)
 import System.Posix.Types (EpochTime)
 
 orThrow :: Monad m => m (Maybe a) -> e -> m (Either e a)
-orThrow action e = do
-  result <- action
-  return $ maybe (Left e) Right result
+orThrow action e =
+  maybe (Left e) Right <$> action
 
 -- * User
 
@@ -91,9 +90,7 @@ updateArticle curUser slug param = runExceptT $ do
   ExceptT $ getArticle (Just curUser) newSlug
 
 genSlug' :: (TimeRepo m) => Text -> Integer -> m Text
-genSlug' title uId = do
-  createdAt <- currentTime
-  return $ genSlug title uId $ convert createdAt
+genSlug' title uId = genSlug title uId . convert <$> currentTime
 
 genSlug :: Text -> Integer -> EpochTime -> Text
 genSlug title userId unixTs = 

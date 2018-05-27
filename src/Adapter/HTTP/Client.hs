@@ -124,7 +124,7 @@ deleteArticle :: (RW r m) => Token -> Slug -> m (Either (Err ArticleError) ())
 deleteArticle token slug = runExceptT $ do
   url <- buildUrl $ "/articles/" <> unpack slug
   let opts = defaults & authHeader token
-  (const () . asText) <$> exec (deleteWith opts url)
+  const () . asText <$> exec (deleteWith opts url)
 
 paginate :: Pagination -> Network.Wreq.Options -> Network.Wreq.Options
 paginate (Pagination limit offset) =
@@ -168,7 +168,7 @@ delComment :: (RW r m) => Token -> Slug -> CommentId -> m (Either (Err CommentEr
 delComment token slug cId = runExceptT $ do
   url <- buildUrl $ "/articles/" <> unpack slug <> "/comments/" <> show cId
   let opts = defaults & authHeader token
-  (const () . asText) <$> exec (deleteWith opts url)
+  const () . asText <$> exec (deleteWith opts url)
 
 getComments :: (RW r m) => Maybe Token -> Slug -> m (Either (Err CommentError) [Comment])
 getComments mayToken slug = runExceptT $ do
