@@ -47,9 +47,9 @@ getProfile mayCurUser username =
   findProfile (snd <$> mayCurUser) username `orThrow` UserErrorNotFound username
 
 followUser :: (ProfileRepo m) => CurrentUser -> Username -> m (Either UserError Profile)
-followUser curUser@(_, curUserId) username = do
-  followUserByUsername curUserId username
-  getProfile (Just curUser) username
+followUser curUser@(_, curUserId) username = runExceptT $ do
+  ExceptT $ followUserByUsername curUserId username
+  ExceptT $ getProfile (Just curUser) username
 
 unfollowUser :: (ProfileRepo m) => CurrentUser -> Username -> m (Either UserError Profile)
 unfollowUser curUser@(_, curUserId) username = do

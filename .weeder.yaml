@@ -1,0 +1,30 @@
+- package:
+  - name: realworld
+  - section:
+    - name: library
+    - message:
+      - name: Weeds exported
+      - module:
+        - name: Adapter.PG
+        - identifier:
+          - FRow
+          - isUniqueConstraintsViolation
+          - translateSqlUserError
+      - module:
+        - name: Core.Services
+        - identifier:
+          - genSlug
+          - genSlug'
+          - getComments'
+          - validateArticleExists
+          - validateArticleOwnedBy
+          - validateCommentExists
+          - validateCommentOwnedBy
+  - section:
+    - name: test:realworld-test
+    - message:
+      - name: Weeds exported
+      - module:
+        - name: Spec.Common
+        - identifier: randomCreateArticleParam
+

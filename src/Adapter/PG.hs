@@ -10,7 +10,6 @@ import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.Types
 import System.Environment
 import Core.Types
-import Control.Monad.Except
 
 type PG r m = (MonadReader r m, Has Connection r, MonadIO m, MonadUnliftIO m)
     
@@ -67,7 +66,7 @@ addUser (Register name email pass) defaultImgUrl = do
           \values (?, ?, crypt(?, gen_salt('bf')), '', ?)"
 
 updateUserById :: (PG r m) => UserId -> UpdateUser -> m (Either UserError ())
-updateUserById uId arg@(UpdateUser email uname pass img bio) = do
+updateUserById uId (UpdateUser email uname pass img bio) = do
   conn <- asks getter
   result <- try . liftIO $ action conn
   return $ bimap (translateSqlUserError (fromMaybe "" email) (fromMaybe "" uname)) (const ()) result
