@@ -2,6 +2,7 @@ module Feature.User.PG where
 
 import ClassyPrelude
 import Feature.User.Types
+import Feature.Auth.Types
 import Platform.PG
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromRow

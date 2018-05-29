@@ -3,6 +3,7 @@ module Feature.User.Service where
 import ClassyPrelude
 import Control.Monad.Except
 import Feature.User.Types
+import Feature.Auth.Types
 import Feature.Common.Util (orThrow)
 
 -- * User

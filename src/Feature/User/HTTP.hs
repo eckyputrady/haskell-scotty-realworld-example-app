@@ -1,17 +1,14 @@
 module Feature.User.HTTP
       ( routes
-      , UserService(..)
-      , TokenService(..)
-      , optionalUser
-      , requireUser
+      , Service(..)
       ) where
 
 import ClassyPrelude hiding (delete)
 
 import Feature.User.Types
-import Feature.Common.Util (orThrow)
+import Feature.Auth.Types
 import Feature.Common.HTTP
-import Control.Monad.Except
+import qualified Feature.Auth.HTTP as Auth
 import Web.Scotty.Trans
 import Network.HTTP.Types.Status
 import qualified Text.Digestive.Form as DF
@@ -19,7 +16,7 @@ import qualified Text.Digestive.Types as DF
 import Text.Digestive.Form ((.:))
 import Text.Regex
 
-class UserService m where
+class Service m where
   login :: Auth -> m (Either UserError User)
   register :: Register -> m (Either UserError User)
   getUser :: CurrentUser -> m (Either UserError User)
@@ -28,7 +25,7 @@ class UserService m where
   followUser :: CurrentUser -> Username -> m (Either UserError Profile)
   unfollowUser :: CurrentUser -> Username -> m (Either UserError Profile)
 
-routes :: (TokenService m, UserService m, MonadIO m) => ScottyT LText m ()
+routes :: (Auth.Service m, Service m, MonadIO m) => ScottyT LText m ()
 routes = do
 
   -- users
@@ -44,12 +41,12 @@ routes = do
     json $ UserWrapper result
 
   get "/api/user" $ do
-    curUser <- requireUser
+    curUser <- Auth.requireUser
     result <- stopIfError userErrorHandler $ getUser curUser
     json $ UserWrapper result
 
   put "/api/user" $ do
-    curUser <- requireUser
+    curUser <- Auth.requireUser
     req <- parseJsonBody ("user" .: updateUserForm)
     result <- stopIfError userErrorHandler $ updateUser curUser req
     json $ UserWrapper result
@@ -58,19 +55,19 @@ routes = do
   -- profiles
 
   get "/api/profiles/:username" $ do
-    curUser <- optionalUser
+    curUser <- Auth.optionalUser
     username <- param "username"
     result <- stopIfError userErrorHandler $ getProfile curUser username
     json $ ProfileWrapper result
 
   post "/api/profiles/:username/follow" $ do
-    curUser <- requireUser
+    curUser <- Auth.requireUser
     username <- param "username"
     result <- stopIfError userErrorHandler $ followUser curUser username
     json $ ProfileWrapper result
 
   delete "/api/profiles/:username/follow" $ do
-    curUser <- requireUser
+    curUser <- Auth.requireUser
     username <- param "username"
     result <- stopIfError userErrorHandler $ unfollowUser curUser username
     json $ ProfileWrapper result
@@ -129,29 +126,3 @@ updateUserForm = UpdateUser <$> "email" .: DF.validateOptional emailValidation (
                             <*> "password" .: DF.validateOptional passwordValidation (DF.optionalText Nothing)
                             <*> "image" .: DF.optionalText Nothing
                             <*> "bio" .: DF.optionalText Nothing
-
--- Getting current user
-
-class Monad m => TokenService m where
-  resolveToken :: Token -> m (Either TokenError CurrentUser)
-
-getCurrentUser :: (TokenService m) => ActionT LText m (Either TokenError CurrentUser)
-getCurrentUser = do
-  mayHeaderVal <- header "Authorization"
-  runExceptT $ do
-    headerVal <- ExceptT $ pure mayHeaderVal `orThrow` TokenErrorNotFound
-    let token = toStrict $ drop 6 headerVal
-    ExceptT $ lift $ resolveToken token
-
-optionalUser :: (TokenService m) => ActionT LText m (Maybe CurrentUser)
-optionalUser =
-  either (const Nothing) Just <$> getCurrentUser
-
-requireUser :: (TokenService m) => ActionT LText m CurrentUser
-requireUser = do
-  result <- getCurrentUser
-  stopIfError tokenErrorHandler (pure result)
-  where 
-    tokenErrorHandler e = do
-      status status401
-      json e

@@ -2,15 +2,12 @@ module Feature.User.Types where
 
 import ClassyPrelude
 import Data.Aeson.TH
+import Feature.Auth.Types
 import Database.PostgreSQL.Simple.FromRow
 
 type Username = Text
 type Password = Text
 type Email = Text
-type Token = Text
-type UserId = Integer
-
-type CurrentUser = (Token, UserId)
 
 data Auth = Auth
   { authEmail :: Email
@@ -53,13 +50,6 @@ data UserError
   | UserErrorEmailTaken Email
   deriving (Eq, Show)
 
-data TokenError
-  = TokenErrorUserIdNotFound
-  | TokenErrorNotFound
-  | TokenErrorExpired
-  | TokenErrorMalformed String
-  deriving (Eq, Show)
-
 newtype UserWrapper a = UserWrapper { userWrapperUser :: a } deriving (Eq, Show)
 newtype ProfileWrapper a = ProfileWrapper { profileWrapperProfile :: a } deriving (Eq, Show)
 
@@ -74,7 +64,6 @@ $(concat <$>
   [ ''User
   , ''Profile
   , ''UserError
-  , ''TokenError
   , ''ProfileWrapper
   , ''UserWrapper
   , ''Auth

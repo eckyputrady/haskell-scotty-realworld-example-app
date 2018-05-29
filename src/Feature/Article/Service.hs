@@ -3,7 +3,7 @@ module Feature.Article.Service where
 import ClassyPrelude
 import Control.Monad.Except
 import Feature.Article.Types
-import Feature.User.Types
+import Feature.Auth.Types
 import Feature.Common.Types
 import qualified Web.Slug as WSlug
 import Data.Convertible (convert)

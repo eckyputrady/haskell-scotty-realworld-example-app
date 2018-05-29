@@ -2,7 +2,7 @@ module Feature.Article.PG where
 
 import ClassyPrelude
 import Feature.Article.Types
-import Feature.User.Types
+import Feature.Auth.Types
 import Feature.Common.Types
 import Platform.PG
 import Database.PostgreSQL.Simple.SqlQQ

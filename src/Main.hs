@@ -9,6 +9,9 @@ import qualified Platform.PG as PG
 import qualified Platform.JWT as JWT
 import qualified Platform.HTTP as HTTP
 
+import qualified Feature.Auth.HTTP as AuthHTTP
+import qualified Feature.Auth.JWT as AuthJWT
+
 import qualified Feature.User.HTTP as UserHTTP
 import qualified Feature.User.JWT as UserJWT
 import qualified Feature.User.PG as UserPG
@@ -39,10 +42,10 @@ newtype AppT a = AppT
 instance MonadRandom AppT where
   getRandomBytes = liftIO . getRandomBytes
 
-instance UserHTTP.TokenService AppT where
-  resolveToken = UserJWT.resolveToken
+instance AuthHTTP.Service AppT where
+  resolveToken = AuthJWT.resolveToken
 
-instance UserHTTP.UserService AppT where
+instance UserHTTP.Service AppT where
   login = UserService.login
   register = UserService.register
   getUser = UserService.getUser

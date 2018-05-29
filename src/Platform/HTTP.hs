@@ -11,12 +11,13 @@ import Network.Wai.Handler.WarpTLS (runTLS, tlsSettings)
 import Network.Wai.Handler.Warp (defaultSettings, setPort)
 import Network.Wai.Middleware.Cors
 
+import qualified Feature.Auth.HTTP as Auth
 import qualified Feature.User.HTTP as User
 import qualified Feature.Article.HTTP as Article
 
 import System.Environment
 
-type App r m = (Article.Service m, User.TokenService m, User.UserService m, MonadIO m)
+type App r m = (Article.Service m, Auth.Service m, User.Service m, MonadIO m)
 
 main :: (App r m) => (m Response -> IO Response) -> IO ()
 main runner = do

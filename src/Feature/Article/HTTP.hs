@@ -6,10 +6,10 @@ module Feature.Article.HTTP
 import ClassyPrelude hiding (delete)
 
 import Feature.Article.Types
-import Feature.User.Types
+import Feature.Auth.Types
 import Feature.Common.Types
-import Feature.User.HTTP (TokenService, requireUser, optionalUser)
 import Feature.Common.HTTP
+import qualified Feature.Auth.HTTP as Auth
 import Web.Scotty.Trans
 import Network.HTTP.Types.Status
 import qualified Text.Digestive.Form as DF
@@ -24,43 +24,43 @@ class Service m where
   deleteArticle :: CurrentUser -> Slug -> m (Either ArticleError ())
 
 
-routes :: (TokenService m, Service m, MonadIO m) => ScottyT LText m ()
+routes :: (Auth.Service m, Service m, MonadIO m) => ScottyT LText m ()
 routes = do
 
   get "/api/articles" $ do
-    curUser <- optionalUser
+    curUser <- Auth.optionalUser
     pagination <- parsePagination
     articleFilter <- parseArticleFilter
     result <- lift $ getArticles curUser articleFilter pagination
     json $ ArticlesWrapper result (length result)
 
   get "/api/articles/feed" $ do
-    curUser <- requireUser
+    curUser <- Auth.requireUser
     pagination <- parsePagination
     result <- lift $ getFeed curUser pagination
     json $ ArticlesWrapper result (length result)
 
   get "/api/articles/:slug" $ do
-    curUser <- optionalUser
+    curUser <- Auth.optionalUser
     slug <- param "slug"
     result <- stopIfError articleErrorHandler $ getArticle curUser slug
     json $ ArticleWrapper result
 
   post "/api/articles" $ do
-    curUser <- requireUser
+    curUser <- Auth.requireUser
     req <- parseJsonBody ("article" .: createArticleForm)
     result <- stopIfError articleErrorHandler $ createArticle curUser req
     json $ ArticleWrapper result
 
   put "/api/articles/:slug" $ do
-    curUser <- requireUser
+    curUser <- Auth.requireUser
     slug <- param "slug"
     req <- parseJsonBody ("article" .: updateArticleForm)
     result <- stopIfError articleErrorHandler $ updateArticle curUser slug req
     json $ ArticleWrapper result
 
   delete "/api/articles/:slug" $ do
-    curUser <- requireUser
+    curUser <- Auth.requireUser
     slug <- param "slug"
     stopIfError articleErrorHandler $ deleteArticle curUser slug
     json $ asText ""
