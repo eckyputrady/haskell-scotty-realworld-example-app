@@ -5,7 +5,6 @@ import Feature.User.Types
 import Feature.Auth.Types
 import Platform.PG
 import Database.PostgreSQL.Simple
-import Database.PostgreSQL.Simple.FromRow
 
 -- * UserRepo
 
@@ -76,7 +75,7 @@ findProfile :: PG r m => Maybe UserId -> Username -> m (Maybe Profile)
 findProfile mayUserId username = do
   results <- withConn $ \conn -> query conn qry (mayUserId, username)
   return $ case results of
-    [a] -> Just $ unFR a
+    [a] -> Just a
     _ -> Nothing
   where
     qry = "select cast (name as text), bio, image, exists(select 1 from followings where user_id = id and followed_by = ?) as following \
@@ -102,11 +101,3 @@ unfollowUserByUsername uId username =
   where
     qry = "delete from followings where \
           \followed_by = ? and user_id in (select id from users where name = ? limit 1)"
-
--- * PG Deserializations
-
--- newtype so that we can create non-orphan FromRow instance
-newtype FRow a = FRow { unFR :: a }
-
-instance FromRow (FRow Profile) where
-  fromRow = FRow <$> (Profile <$> field <*> field <*> field <*> field)
