@@ -21,6 +21,10 @@ import qualified Feature.Article.HTTP as ArticleHTTP
 import qualified Feature.Article.PG as ArticlePG
 import qualified Feature.Article.Service as ArticleService
 
+import qualified Feature.Comment.HTTP as CommentHTTP
+import qualified Feature.Comment.PG as CommentPG
+import qualified Feature.Comment.Service as CommentService
+
 main :: IO ()
 main = do
   -- acquire resources
@@ -91,3 +95,16 @@ instance ArticleService.TimeRepo AppT where
   
 instance ArticleService.TagRepo AppT where
   allTags = ArticlePG.allTags
+
+instance CommentHTTP.Service AppT where
+  addComment = CommentService.addComment
+  delComment = CommentService.delComment
+  getComments = CommentService.getComments
+
+instance CommentService.CommentRepo AppT where
+  addCommentToSlug = CommentPG.addCommentToSlug
+  delCommentById = CommentPG.delCommentById
+  findComments = CommentPG.findComments
+  isCommentOwnedBy = CommentPG.isCommentOwnedBy
+  isCommentExist = CommentPG.isCommentExist
+  isSlugExist = ArticlePG.isArticleExist

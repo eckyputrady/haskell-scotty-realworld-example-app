@@ -15,7 +15,7 @@ import Network.HTTP.Types.Status
 import qualified Text.Digestive.Form as DF
 import Text.Digestive.Form ((.:))
 
-class Service m where
+class Monad m => Service m where
   getArticles :: Maybe CurrentUser -> ArticleFilter -> Pagination -> m [Article]
   getFeed :: CurrentUser -> Pagination -> m [Article]
   getArticle :: Maybe CurrentUser -> Slug -> m (Either ArticleError Article)

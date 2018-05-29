@@ -16,7 +16,7 @@ import qualified Text.Digestive.Types as DF
 import Text.Digestive.Form ((.:))
 import Text.Regex
 
-class Service m where
+class Monad m => Service m where
   login :: Auth -> m (Either UserError User)
   register :: Register -> m (Either UserError User)
   getUser :: CurrentUser -> m (Either UserError User)

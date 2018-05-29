@@ -13,6 +13,7 @@ import Network.Wai.Middleware.Cors
 
 import qualified Feature.Auth.HTTP as Auth
 import qualified Feature.User.HTTP as User
+import qualified Feature.User.HTTP as Comment
 import qualified Feature.Article.HTTP as Article
 
 import System.Environment
@@ -61,6 +62,7 @@ routes = do
   -- feature routes
   User.routes
   Article.routes
+  Comment.routes
   
   -- health
   get "/api/health" $
