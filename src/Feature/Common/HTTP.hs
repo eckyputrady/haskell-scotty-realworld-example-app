@@ -8,6 +8,12 @@ import Network.HTTP.Types.Status
 import qualified Text.Digestive.Form as DF
 import qualified Text.Digestive.View as DF
 import qualified Text.Digestive.Aeson as DF
+  
+parsePagination :: (ScottyError e, Monad m) => ActionT e m Pagination
+parsePagination = do
+  limit <- param "limit" `rescue` const (return 20)
+  offset <- param "offset" `rescue` const (return 0)
+  return $ Pagination limit offset
 
 parseJsonBody :: (MonadIO m) => DF.Form [Text] m a -> ActionT LText m a
 parseJsonBody form = do

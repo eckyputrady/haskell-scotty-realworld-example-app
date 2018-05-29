@@ -2,6 +2,7 @@ module Feature.User.Types where
 
 import ClassyPrelude
 import Data.Aeson.TH
+import Database.PostgreSQL.Simple.FromRow
 
 type Username = Text
 type Password = Text
@@ -62,6 +63,8 @@ data TokenError
 newtype UserWrapper a = UserWrapper { userWrapperUser :: a } deriving (Eq, Show)
 newtype ProfileWrapper a = ProfileWrapper { profileWrapperProfile :: a } deriving (Eq, Show)
 
+-- * Instances
+
 $(concat <$> 
   mapM (\name -> 
     let lowerCaseFirst (y:ys) = toLower [y] <> ys 
@@ -78,3 +81,6 @@ $(concat <$>
   , ''Register
   , ''UpdateUser
   ])
+
+instance FromRow Profile where
+  fromRow = Profile <$> field <*> field <*> field <*> field

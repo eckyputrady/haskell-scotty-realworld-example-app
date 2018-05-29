@@ -2,6 +2,8 @@ module Feature.User.HTTP
       ( routes
       , UserService(..)
       , TokenService(..)
+      , optionalUser
+      , requireUser
       ) where
 
 import ClassyPrelude hiding (delete)

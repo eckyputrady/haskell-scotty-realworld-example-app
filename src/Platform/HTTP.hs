@@ -12,10 +12,11 @@ import Network.Wai.Handler.Warp (defaultSettings, setPort)
 import Network.Wai.Middleware.Cors
 
 import qualified Feature.User.HTTP as User
+import qualified Feature.Article.HTTP as Article
 
 import System.Environment
 
-type App r m = (User.TokenService m, User.UserService m, MonadIO m)
+type App r m = (Article.Service m, User.TokenService m, User.UserService m, MonadIO m)
 
 main :: (App r m) => (m Response -> IO Response) -> IO ()
 main runner = do
@@ -45,7 +46,6 @@ main runner = do
 routes :: (App r m) => ScottyT LText m ()
 routes = do
   -- middlewares
-
   middleware $ cors $ const $ Just simpleCorsResourcePolicy
     { corsRequestHeaders = "Authorization":simpleHeaders
     , corsMethods = "PUT":"DELETE":simpleMethods
@@ -53,16 +53,14 @@ routes = do
   options (regex ".*") $ return ()
 
   -- err 
-  
   defaultHandler $ \str -> do
     status status500
     json str
 
   -- feature routes
   User.routes
-
+  Article.routes
   
   -- health
-
   get "/api/health" $
     json True

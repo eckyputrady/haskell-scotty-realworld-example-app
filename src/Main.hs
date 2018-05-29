@@ -14,6 +14,10 @@ import qualified Feature.User.JWT as UserJWT
 import qualified Feature.User.PG as UserPG
 import qualified Feature.User.Service as UserService
 
+import qualified Feature.Article.HTTP as ArticleHTTP
+import qualified Feature.Article.PG as ArticlePG
+import qualified Feature.Article.Service as ArticleService
+
 main :: IO ()
 main = do
   -- acquire resources
@@ -60,3 +64,27 @@ instance UserService.ProfileRepo AppT where
 
 instance UserService.TokenRepo AppT where
   generateToken = UserJWT.generateToken
+
+instance ArticleHTTP.Service AppT where
+  getArticles = ArticleService.getArticles
+  getFeed = ArticleService.getFeed
+  getArticle = ArticleService.getArticle
+  createArticle = ArticleService.createArticle
+  updateArticle = ArticleService.updateArticle
+  deleteArticle = ArticleService.deleteArticle
+
+instance ArticleService.ArticleRepo AppT where
+  findArticles = ArticlePG.findArticles
+  addArticle = ArticlePG.addArticle
+  updateArticleBySlug = ArticlePG.updateArticleBySlug
+  deleteArticleBySlug = ArticlePG.deleteArticleBySlug
+  favoriteArticleBySlug = ArticlePG.favoriteArticleBySlug
+  unfavoriteArticleBySlug = ArticlePG.unfavoriteArticleBySlug
+  isArticleOwnedBy = ArticlePG.isArticleOwnedBy
+  isArticleExist = ArticlePG.isArticleExist
+
+instance ArticleService.TimeRepo AppT where
+  currentTime = liftIO getCurrentTime
+  
+instance ArticleService.TagRepo AppT where
+  allTags = ArticlePG.allTags
