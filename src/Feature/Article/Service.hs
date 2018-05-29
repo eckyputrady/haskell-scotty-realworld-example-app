@@ -58,6 +58,16 @@ validateArticleOwnedBy uId slug = runExceptT $ do
     Just False -> throwError $ ArticleErrorNotAllowed slug
     _ -> return ()
 
+favoriteArticle :: (ArticleRepo m) => CurrentUser -> Slug -> m (Either ArticleError Article)
+favoriteArticle curUser@(_, curUserId) slug = do
+  favoriteArticleBySlug curUserId slug
+  getArticle (Just curUser) slug
+
+unfavoriteArticle :: (ArticleRepo m) => CurrentUser -> Slug -> m (Either ArticleError Article)
+unfavoriteArticle curUser@(_, curUserId) slug = do
+  unfavoriteArticleBySlug curUserId slug
+  getArticle (Just curUser) slug
+
 class (Monad m) => ArticleRepo m where
   findArticles :: Maybe Slug -> Maybe Bool -> Maybe CurrentUser
                -> ArticleFilter -> Pagination

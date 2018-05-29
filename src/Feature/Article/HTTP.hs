@@ -22,6 +22,8 @@ class Monad m => Service m where
   createArticle :: CurrentUser -> CreateArticle -> m (Either ArticleError Article)
   updateArticle :: CurrentUser -> Slug -> UpdateArticle -> m (Either ArticleError Article)
   deleteArticle :: CurrentUser -> Slug -> m (Either ArticleError ())
+  favoriteArticle :: CurrentUser -> Slug -> m (Either ArticleError Article)
+  unfavoriteArticle :: CurrentUser -> Slug -> m (Either ArticleError Article)
 
 
 routes :: (Auth.Service m, Service m, MonadIO m) => ScottyT LText m ()
@@ -64,6 +66,18 @@ routes = do
     slug <- param "slug"
     stopIfError articleErrorHandler $ deleteArticle curUser slug
     json $ asText ""
+
+  post "/api/articles/:slug/favorite" $ do
+    curUser <- Auth.requireUser
+    slug <- param "slug"
+    result <- stopIfError articleErrorHandler $ favoriteArticle curUser slug
+    json $ ArticleWrapper result
+
+  delete "/api/articles/:slug/favorite" $ do
+    curUser <- Auth.requireUser
+    slug <- param "slug"
+    result <- stopIfError articleErrorHandler $ unfavoriteArticle curUser slug
+    json $ ArticleWrapper result
 
 
 -- * Errors

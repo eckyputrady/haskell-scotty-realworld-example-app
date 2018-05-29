@@ -79,6 +79,8 @@ instance ArticleHTTP.Service AppT where
   createArticle = ArticleService.createArticle
   updateArticle = ArticleService.updateArticle
   deleteArticle = ArticleService.deleteArticle
+  favoriteArticle = ArticleService.favoriteArticle
+  unfavoriteArticle = ArticleService.unfavoriteArticle
 
 instance ArticleService.ArticleRepo AppT where
   findArticles = ArticlePG.findArticles
