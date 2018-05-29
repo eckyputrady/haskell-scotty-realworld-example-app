@@ -48,6 +48,7 @@ library:
   - slug
   - convertible
   - wai-cors
+  - template-haskell
   # client
   - wreq
   - http-client

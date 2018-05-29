@@ -1,7 +1,8 @@
 module Feature.Auth.Types where
 
 import ClassyPrelude
-import Data.Aeson.TH
+
+import Platform.AesonUtil
 
 type Token = Text
 type UserId = Integer
@@ -14,11 +15,6 @@ data TokenError
   | TokenErrorMalformed String
   deriving (Eq, Show)
 
-$(concat <$> 
-  mapM (\name -> 
-    let lowerCaseFirst (y:ys) = toLower [y] <> ys 
-        lowerCaseFirst "" = ""
-        structName = fromMaybe "" . lastMay . splitElem '.' . show $ name
-    in deriveJSON defaultOptions{fieldLabelModifier = lowerCaseFirst . drop (length structName)} name)
+$(commonJSONDeriveMany
   [ ''TokenError
   ])

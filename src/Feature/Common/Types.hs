@@ -1,7 +1,8 @@
 module Feature.Common.Types where
 
 import ClassyPrelude
-import Data.Aeson.TH
+
+import Platform.AesonUtil
 
 data Pagination = Pagination
   { paginationLimit :: Int
@@ -12,11 +13,6 @@ type InputViolations = Map Text [Text]
 
 newtype ErrorsWrapper a = ErrorsWrapper { errorsWrapperErrors :: a } deriving (Eq, Show)
 
-$(concat <$> 
-  mapM (\name -> 
-    let lowerCaseFirst (y:ys) = toLower [y] <> ys 
-        lowerCaseFirst "" = ""
-        structName = fromMaybe "" . lastMay . splitElem '.' . show $ name
-    in deriveJSON defaultOptions{fieldLabelModifier = lowerCaseFirst . drop (length structName)} name)
+$(commonJSONDeriveMany
   [ ''ErrorsWrapper
   ])

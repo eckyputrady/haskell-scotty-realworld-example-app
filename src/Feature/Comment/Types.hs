@@ -2,8 +2,9 @@ module Feature.Comment.Types where
 
 import ClassyPrelude
 import Feature.User.Types
-import Data.Aeson.TH
+
 import Database.PostgreSQL.Simple.FromRow
+import Platform.AesonUtil
 
 type CommentId = Integer
 
@@ -30,12 +31,7 @@ data CommentError
 newtype CommentWrapper a = CommentWrapper { commentWrapperComment :: a } deriving (Eq, Show)
 newtype CommentsWrapper a = CommentsWrapper { commentsWrapperComments :: [a] } deriving (Eq, Show)
 
-$(concat <$> 
-  mapM (\name -> 
-    let lowerCaseFirst (y:ys) = toLower [y] <> ys 
-        lowerCaseFirst "" = ""
-        structName = fromMaybe "" . lastMay . splitElem '.' . show $ name
-    in deriveJSON defaultOptions{fieldLabelModifier = lowerCaseFirst . drop (length structName)} name)
+$(commonJSONDeriveMany
   [ ''Comment
   , ''CreateComment
   , ''CommentError

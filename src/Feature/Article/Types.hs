@@ -2,9 +2,10 @@ module Feature.Article.Types where
 
 import ClassyPrelude
 import Feature.User.Types
-import Data.Aeson.TH
+
 import Database.PostgreSQL.Simple.Types
 import Database.PostgreSQL.Simple.FromRow
+import Platform.AesonUtil
 
 type Slug = Text
 
@@ -53,12 +54,7 @@ newtype TagsWrapper a = TagsWrapper { tagsWrapperTags :: a } deriving (Eq, Show)
 
 -- * Instances
 
-$(concat <$> 
-  mapM (\name -> 
-    let lowerCaseFirst (y:ys) = toLower [y] <> ys 
-        lowerCaseFirst "" = ""
-        structName = fromMaybe "" . lastMay . splitElem '.' . show $ name
-    in deriveJSON defaultOptions{fieldLabelModifier = lowerCaseFirst . drop (length structName)} name)
+$(commonJSONDeriveMany
   [ ''ArticleFilter
   , ''Article
   , ''CreateArticle

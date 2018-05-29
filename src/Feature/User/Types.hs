@@ -1,9 +1,10 @@
 module Feature.User.Types where
 
 import ClassyPrelude
-import Data.Aeson.TH
+
 import Feature.Auth.Types
 import Database.PostgreSQL.Simple.FromRow
+import Platform.AesonUtil
 
 type Username = Text
 type Password = Text
@@ -55,12 +56,7 @@ newtype ProfileWrapper a = ProfileWrapper { profileWrapperProfile :: a } derivin
 
 -- * Instances
 
-$(concat <$> 
-  mapM (\name -> 
-    let lowerCaseFirst (y:ys) = toLower [y] <> ys 
-        lowerCaseFirst "" = ""
-        structName = fromMaybe "" . lastMay . splitElem '.' . show $ name
-    in deriveJSON defaultOptions{fieldLabelModifier = lowerCaseFirst . drop (length structName)} name)
+$(commonJSONDeriveMany
   [ ''User
   , ''Profile
   , ''UserError
