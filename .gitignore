@@ -2,3 +2,4 @@
 .hspec-failures
 realworld-test.tix
 .DS_Store
+*.cabal

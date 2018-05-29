@@ -2,8 +2,11 @@ module Spec.Comment (spec) where
 
 import ClassyPrelude
 import Test.Hspec
-import Core.Types
-import qualified Adapter.HTTP.Client as RW
+import Feature.Comment.Types
+import Feature.User.Types
+import Feature.Article.Types
+import Feature.Auth.Types
+import qualified Misc.Client as RW
 
 import Spec.Common
 

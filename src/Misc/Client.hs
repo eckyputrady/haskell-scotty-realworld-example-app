@@ -1,7 +1,11 @@
-module Adapter.HTTP.Client where
+module Misc.Client where
 
 import ClassyPrelude
-import Core.Types
+import Feature.Common.Types
+import Feature.Auth.Types
+import Feature.User.Types
+import Feature.Article.Types
+import Feature.Comment.Types hiding (Slug)
 import Network.Wreq hiding (Auth)
 import Control.Monad.Except
 import Control.Lens hiding ((.=))

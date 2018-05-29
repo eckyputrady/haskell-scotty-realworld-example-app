@@ -1,25 +1,10 @@
 - package:
   - name: realworld
   - section:
-    - name: library
+    - name: exe:realworld-exe
     - message:
-      - name: Weeds exported
-      - module:
-        - name: Adapter.PG
-        - identifier:
-          - FRow
-          - isUniqueConstraintsViolation
-          - translateSqlUserError
-      - module:
-        - name: Core.Services
-        - identifier:
-          - genSlug
-          - genSlug'
-          - getComments'
-          - validateArticleExists
-          - validateArticleOwnedBy
-          - validateCommentExists
-          - validateCommentOwnedBy
+      - name: Redundant build-depends entry
+      - depends: base
   - section:
     - name: test:realworld-test
     - message:
