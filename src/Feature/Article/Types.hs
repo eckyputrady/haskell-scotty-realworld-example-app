@@ -49,6 +49,7 @@ data ArticleError
 
 newtype ArticleWrapper a = ArticleWrapper { articleWrapperArticle :: a } deriving (Eq, Show)
 data ArticlesWrapper a = ArticlesWrapper { articlesWrapperArticles :: [a], articlesWrapperArticlesCount :: Int } deriving (Eq, Show)
+newtype TagsWrapper a = TagsWrapper { tagsWrapperTags :: a } deriving (Eq, Show)
 
 -- * Instances
 
@@ -65,6 +66,7 @@ $(concat <$>
   , ''ArticleError
   , ''ArticleWrapper
   , ''ArticlesWrapper
+  , ''TagsWrapper
   ])
 
 instance FromRow Article where
