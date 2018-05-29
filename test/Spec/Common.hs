@@ -1,8 +1,9 @@
 module Spec.Common where
     
 import ClassyPrelude
-import Core.Types
-import qualified Adapter.HTTP.Client as RW
+import Feature.Article.Types
+import Feature.User.Types
+import qualified Misc.Client as RW
 import Text.StringRandom
 
 randomRegisterParam :: IO Register

@@ -24,6 +24,7 @@ class Monad m => Service m where
   deleteArticle :: CurrentUser -> Slug -> m (Either ArticleError ())
   favoriteArticle :: CurrentUser -> Slug -> m (Either ArticleError Article)
   unfavoriteArticle :: CurrentUser -> Slug -> m (Either ArticleError Article)
+  getTags :: m (Set Tag)
 
 
 routes :: (Auth.Service m, Service m, MonadIO m) => ScottyT LText m ()
@@ -78,6 +79,10 @@ routes = do
     slug <- param "slug"
     result <- stopIfError articleErrorHandler $ unfavoriteArticle curUser slug
     json $ ArticleWrapper result
+
+  get "/api/tags" $ do
+    result <- lift getTags
+    json $ TagsWrapper result
 
 
 -- * Errors

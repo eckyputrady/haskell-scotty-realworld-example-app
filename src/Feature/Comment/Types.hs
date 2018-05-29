@@ -37,6 +37,7 @@ $(concat <$>
         structName = fromMaybe "" . lastMay . splitElem '.' . show $ name
     in deriveJSON defaultOptions{fieldLabelModifier = lowerCaseFirst . drop (length structName)} name)
   [ ''Comment
+  , ''CreateComment
   , ''CommentError
   , ''CommentWrapper
   , ''CommentsWrapper

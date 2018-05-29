@@ -1,0 +1,82 @@
+name: realworld
+version: '1.0.0.0'
+category: Web
+author: Ecky Putrady
+maintainer: eckyputrady@gmail.com
+copyright: 2018 Ecky Putrady
+license: BSD3
+github: eckyputrady/haskell-scotty-realworld-example-app#readme
+extra-source-files:
+- README.md
+
+default-extensions:
+- OverloadedStrings
+- QuasiQuotes
+- GeneralizedNewtypeDeriving
+- ConstraintKinds
+- FlexibleContexts
+- TemplateHaskell
+- FlexibleInstances
+- NoImplicitPrelude
+- ScopedTypeVariables
+
+dependencies:
+- classy-prelude
+- base
+
+library:
+  source-dirs: src
+  dependencies:
+  - scotty
+  - postgresql-simple
+  - postgresql-simple-migration
+  - data-has
+  - aeson
+  - time
+  - mtl
+  - regex-compat
+  - http-types
+  - resource-pool
+  - warp-tls
+  - warp
+  - digestive-functors
+  - digestive-functors-aeson
+  - lens
+  - wai
+  - jose-jwt
+  - cryptonite
+  - slug
+  - convertible
+  - wai-cors
+  # client
+  - wreq
+  - http-client
+  ghc-options:
+  - -Wall
+  - -Werror
+  - -Wincomplete-record-updates
+  - -Wincomplete-uni-patterns
+  - -Wredundant-constraints
+executables:
+  realworld-exe:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - realworld
+tests:
+  realworld-test:
+    main: Main.hs
+    source-dirs: test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - realworld
+    - hspec
+    - postgresql-simple
+    - string-random

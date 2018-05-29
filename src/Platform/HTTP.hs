@@ -13,12 +13,12 @@ import Network.Wai.Middleware.Cors
 
 import qualified Feature.Auth.HTTP as Auth
 import qualified Feature.User.HTTP as User
-import qualified Feature.User.HTTP as Comment
+import qualified Feature.Comment.HTTP as Comment
 import qualified Feature.Article.HTTP as Article
 
 import System.Environment
 
-type App r m = (Article.Service m, Auth.Service m, User.Service m, MonadIO m)
+type App r m = (Article.Service m, Auth.Service m, Comment.Service m, User.Service m, MonadIO m)
 
 main :: (App r m) => (m Response -> IO Response) -> IO ()
 main runner = do
