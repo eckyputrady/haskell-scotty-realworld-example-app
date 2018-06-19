@@ -10,6 +10,7 @@ import Spec.Common
 import qualified Spec.User as User
 import qualified Spec.Article as Article
 import qualified Spec.Comment as Comment
+import System.Environment
 
 main :: IO ()
 main = withEnv . hspec $ do
@@ -23,8 +24,6 @@ withEnv = bracket startEnv cleanEnv . const
 startEnv :: IO ThreadId
 startEnv = do
   execPGQuery ["drop database if exists realworld_test", "create database realworld_test"]
-  setEnv "DATABASE_URL" "postgresql://127.0.0.1/realworld_test"
-  setEnv "ENABLE_HTTPS" "False"
   setEnv "JWT_EXPIRATION_SECS" "8"
   tId <- forkIO Lib.main
   unlessM healthCheck $ do
@@ -44,6 +43,6 @@ execPGQuery :: [Query] -> IO ()
 execPGQuery qrys =
   bracket acquire release execQuery
   where
-    acquire = connectPostgreSQL "postgresql://127.0.0.1"
+    acquire = connectPostgreSQL "postgresql://realworld_scotty_user:password1@127.0.0.1/postgres"
     release = close
     execQuery conn = forM_ qrys (void . execute_ conn)
