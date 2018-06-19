@@ -10,7 +10,6 @@ import Spec.Common
 import qualified Spec.User as User
 import qualified Spec.Article as Article
 import qualified Spec.Comment as Comment
-import System.Environment
 
 main :: IO ()
 main = withEnv . hspec $ do
