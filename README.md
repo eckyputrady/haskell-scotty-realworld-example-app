@@ -83,6 +83,40 @@ To setup deployment to Heroku, please configure this custom buildpack
 
     heroku buildpacks:set https://github.com/mfine/heroku-buildpack-stack
 
+# Building and running a Docker Image
+
+There is a Makefile with tasks to build a docker image using docker-compose.
+
+    make docker-build
+    make image
+
+To test the built Docker image here is an example `docker-compose.yml` file:
+
+    version: '3'
+    services:
+      webserver-realworld:
+        container_name: webserver.realworld
+        image: 'haskell-scotty-realworld-example-app:latest'
+        links:
+        - postgres-realworld
+        restart: always
+        ports:
+        - "3001:3001"
+        environment:
+        - PORT=3001
+        - DATABASE_URL=postgresql://postgres.realworld/realworld
+
+      postgres-realworld:
+        container_name: postgres.realworld
+        image: "postgres:10.5"
+        ports:
+        - "5432:5432"
+        environment:
+        - POSTGRES_DB=realworld
+        - POSTGRES_USER=root
+
+Simply put the above in a file, then run `docker-compose up -d`. The webserver will be accessible at localhost on port 3001.
+
 # Misc
 
 Logo image - credits to @EricSimmon
