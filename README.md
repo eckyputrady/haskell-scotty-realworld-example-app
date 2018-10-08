@@ -66,10 +66,10 @@ Install GHC
 Install dependencies and build project
 
     stack build
-    
+
 Run project
 
-    stack exec realworld
+    stack exec realworld-exe
 
 Alternatively, to watch file changes and start the server automatically
 
