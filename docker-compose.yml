@@ -1,0 +1,8 @@
+version: '3'
+services:
+  builder:
+    image: 'fpco/stack-build:lts-11.10'
+    volumes:
+    - ./:/usr/local/src:rw
+    env_file:
+    - docker.env
