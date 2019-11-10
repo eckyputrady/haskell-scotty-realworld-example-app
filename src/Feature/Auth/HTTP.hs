@@ -16,7 +16,7 @@ getCurrentUser = do
   mayHeaderVal <- header "Authorization"
   runExceptT $ do
     headerVal <- ExceptT $ pure mayHeaderVal `orThrow` TokenErrorNotFound
-    let token = toStrict $ drop 6 headerVal
+    let token = toStrict $ drop 7 headerVal
     ExceptT $ lift $ resolveToken token
 
 optionalUser :: (Service m) => ActionT LText m (Maybe CurrentUser)
